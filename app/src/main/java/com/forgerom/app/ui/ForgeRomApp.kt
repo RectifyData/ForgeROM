@@ -564,7 +564,9 @@ private fun StatusChip(status: String) {
         "official" -> Color(0xFF1E9E5A) to stringResource(R.string.status_official)
         "unofficial" -> Color(0xFFE08A00) to stringResource(R.string.status_unofficial)
         "abandoned" -> Color(0xFF8A8F98) to stringResource(R.string.status_abandoned)
-        else -> Color(0xFF8A8F98) to status
+        "unstable", "experimental" -> MaterialTheme.colorScheme.error to
+            status.replaceFirstChar { it.uppercase() }
+        else -> MaterialTheme.colorScheme.onSurfaceVariant to status
     }
     Surface(shape = CircleShape, color = color.copy(alpha = 0.15f), contentColor = color) {
         Text(label, Modifier.padding(horizontal = 10.dp, vertical = 3.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
