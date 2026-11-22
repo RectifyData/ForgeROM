@@ -172,7 +172,6 @@
     <string name="downloads_refresh">İndirmeleri denetle</string>
     <string name="downloads_empty">Henüz ForgeROM üzerinden indirilen dosya yok.</string>
     <string name="device_desc">Cihaz bilgileri, donanım durumu ve veritabanı</string>
-    <string name="device_use_detected">Algılanan cihazı kullan</string>
     <string name="device_database_title">GitHub telefon veritabanı</string>
     <string name="device_database_desc">Cihaz bilgileri GitHub üzerinden alınır ve çevrimdışı saklanır.</string>
     <string name="device_database_refresh">Veritabanını yenile</string>
