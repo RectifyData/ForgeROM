@@ -267,4 +267,11 @@
     <string name="extra_zips_missing">No verified ZIP download provided; do not substitute an arbitrary file.</string>
     <string name="extra_zips_instructions">Read maintainer instructions</string>
     <string name="extra_zips_repartition_warning">Repartitioning can permanently erase data or prevent booting. Never run automatically; verify the exact device, capacity and layout first.</string>
+    <!-- Owner-published browser folder access -->
+    <string name="folder_access_open">Open original folder</string>
+    <string name="folder_access_password">Public access password: %1$s</string>
+    <string name="folder_access_copy">Copy password</string>
+    <string name="folder_access_copied">Password copied</string>
+    <string name="folder_access_password_source">View owner\'s public password post</string>
+    <string name="folder_access_caution">This password is attributed to the uploader by the catalogue; verify it at the linked source. The app does not bypass hosting restrictions.</string>
 </resources>

@@ -230,4 +230,11 @@
     <string name="extra_zips_missing">Doğrulanmış ZIP bağlantısı sağlanmadı; rastgele bir dosya kullanmayın.</string>
     <string name="extra_zips_instructions">Geliştirici talimatlarını oku</string>
     <string name="extra_zips_repartition_warning">Yeniden bölümleme verileri kalıcı olarak silebilir veya açılışı engelleyebilir. Otomatik çalıştırmayın; cihaz, kapasite ve bölüm düzenini doğrulayın.</string>
+    <!-- Owner-published browser folder access -->
+    <string name="folder_access_open">Orijinal klasörü aç</string>
+    <string name="folder_access_password">Herkese açık erişim parolası: %1$s</string>
+    <string name="folder_access_copy">Parolayı kopyala</string>
+    <string name="folder_access_copied">Parola kopyalandı</string>
+    <string name="folder_access_password_source">Sahibinin herkese açık parola paylaşımını gör</string>
+    <string name="folder_access_caution">Bu parola katalogda yükleyen kişiye atfedilir; bağlantıdaki kaynaktan doğrulayın. Uygulama dosya barındırma kısıtlamalarını aşmaz.</string>
 </resources>

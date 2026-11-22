@@ -9,6 +9,7 @@ import com.forgerom.app.ai.RomItem
 import com.forgerom.app.ai.RomArtifact
 import com.forgerom.app.ai.RomBug
 import com.forgerom.app.ai.RomExtraZip
+import com.forgerom.app.ai.PublicFolderAccess
 import com.forgerom.app.ai.RomSearchResult
 import com.forgerom.app.ai.UiText
 import org.json.JSONArray
@@ -92,6 +93,16 @@ class ResultCache(private val context: Context) {
         return UiText.raw(o.optString("raw"))
     }
 
+    private fun PublicFolderAccess.toJson(): JSONObject = JSONObject()
+        .put("folder", folderUrl)
+        .put("password", publicPassword ?: JSONObject.NULL)
+        .put("source", passwordSourceUrl ?: JSONObject.NULL)
+
+    private fun folderFromJson(o: JSONObject?): PublicFolderAccess? {
+        val url = o?.str("folder") ?: return null
+        return PublicFolderAccess(url, o.str("password"), o.str("source"))
+    }
+
     private fun resultToJson(r: RomSearchResult): JSONObject = JSONObject()
         .put("marketingName", r.marketingName ?: JSONObject.NULL)
         .put("blStatus", r.bootloader.status.name)
@@ -118,6 +129,7 @@ class ResultCache(private val context: Context) {
                         .put("version", item.version ?: JSONObject.NULL)
                         .put("file", item.fileName ?: JSONObject.NULL)
                         .put("partition", item.partition ?: JSONObject.NULL)
+                        .put("folderAccess", item.folderAccess?.toJson() ?: JSONObject.NULL)
                 }))
                 .put("extraZips", JSONArray(rom.extraZips.map { zip ->
                     JSONObject()
@@ -131,6 +143,7 @@ class ResultCache(private val context: Context) {
                         .put("notes", zip.notes ?: JSONObject.NULL)
                         .put("sha256", zip.sha256 ?: JSONObject.NULL)
                         .put("models", JSONArray(zip.applicableModels))
+                        .put("folderAccess", zip.folderAccess?.toJson() ?: JSONObject.NULL)
                 }))
                 .put("bugs", JSONArray(rom.bugs.map { bug ->
                     JSONObject().put("component", bug.component).put("status", bug.status)
@@ -176,7 +189,8 @@ class ResultCache(private val context: Context) {
                             val label = v.str("label") ?: return@mapNotNull null
                             val url = v.str("url") ?: return@mapNotNull null
                             RomArtifact(label, url, v.str("direct"), v.str("version"),
-                                v.str("file"), v.str("partition"))
+                                v.str("file"), v.str("partition"),
+                                folderFromJson(v.optJSONObject("folderAccess")))
                         }
                     } ?: emptyList(),
                     extraZips = x.optJSONArray("extraZips")?.let { rows ->
@@ -192,7 +206,8 @@ class ResultCache(private val context: Context) {
                                 fileName = zip.str("file"), version = zip.str("version"),
                                 notes = zip.str("notes"), sha256 = zip.str("sha256"),
                                 applicableModels = if (models == null) emptyList()
-                                    else (0 until models.length()).map { models.optString(it) }
+                                    else (0 until models.length()).map { models.optString(it) },
+                                folderAccess = folderFromJson(zip.optJSONObject("folderAccess"))
                             )
                         }
                     } ?: emptyList(),

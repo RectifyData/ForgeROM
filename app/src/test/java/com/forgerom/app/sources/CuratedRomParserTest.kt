@@ -23,7 +23,10 @@ class CuratedRomParserTest {
               "status": "unstable",
               "source_url": "https://xdaforums.com/t/rikka",
               "packages": [{"label": "ROM", "url": "https://pixeldrain.com/u/rom",
-                "version": "v1.0", "file_name": "rikka.zip"}],
+                "version": "v1.0", "file_name": "rikka.zip",
+                "folder_url": "https://gofile.io/d/ExamplePublicFolder",
+                "public_password": "OwnerPublishedExample",
+                "password_source_url": "https://xdaforums.com/t/rikka"}],
               "extra_images": [
                 {"label": "Vendor", "url": "https://pixeldrain.com/u/vendor",
                   "partition": "vendor", "file_name": "vendor.img"},
@@ -33,7 +36,10 @@ class CuratedRomParserTest {
               "extra_zips": [
                 {"label": "Repartition before install", "kind": "repartitioner",
                   "required": true, "notes": "No confirmed ZIP",
-                  "documentation_url": "https://xdaforums.com/t/rikka"},
+                  "documentation_url": "https://xdaforums.com/t/rikka",
+                  "folder_url": "https://gofile.io/d/ExampleRepartitioner",
+                  "public_password": "ExamplePublicCode",
+                  "password_source_url": "https://xdaforums.com/t/rikka"},
                 {"label": "Optional patch", "kind": "patch",
                   "required": false, "file_name": "patch.zip",
                   "url": "https://example.org/patch.zip", "models": ["SM-G610F/DS"]},
@@ -63,6 +69,37 @@ class CuratedRomParserTest {
         assertTrue(rom.safetyNotes.single().contains("16 GB"))
         assertEquals("Port author", rom.credits.single())
         assertEquals(null, rom.download) // Community links are not trusted auto-downloads
+    }
+
+    @Test fun displaysOwnerPublishedPasswordAndOriginalFolderWithoutAutoDownload() {
+        val rom = CuratedRomParser.parse(fixture, j7).single()
+        val pkg = rom.artifacts.single { it.fileName == "rikka.zip" }
+        assertEquals("https://gofile.io/d/ExamplePublicFolder", pkg.folderAccess?.folderUrl)
+        assertEquals("OwnerPublishedExample", pkg.folderAccess?.publicPassword)
+        assertEquals("https://xdaforums.com/t/rikka", pkg.folderAccess?.passwordSourceUrl)
+        assertEquals(null, rom.download)
+        val zip = rom.extraZips.first()
+        assertEquals("ExamplePublicCode", zip.folderAccess?.publicPassword)
+        assertEquals(null, zip.url)
+    }
+
+    @Test fun doesNotExposePasswordsWithoutAnOwnerCitation() {
+        val removed = fixture.replace(
+            "\"password_source_url\": \"https://xdaforums.com/t/rikka\"",
+            "\"password_source_url\": \"http://invalid.example/secret\"")
+        val rom = CuratedRomParser.parse(removed, j7).single()
+        assertEquals(null, rom.artifacts.first().folderAccess?.publicPassword)
+        assertEquals(null, rom.extraZips.first().folderAccess?.publicPassword)
+        assertTrue(rom.artifacts.first().folderAccess?.folderUrl!!.startsWith("https://"))
+    }
+
+    @Test fun ignoresUnsafeFolderSchemesAndInvalidAccessCodes() {
+        val injected = fixture.replace(
+            "https://gofile.io/d/ExamplePublicFolder",
+            "javascript:alert(1)")
+        val rom = CuratedRomParser.parse(injected, j7).single()
+        assertEquals(null, rom.artifacts.first().folderAccess)
+        assertTrue(rom.artifacts.first().url.startsWith("https://"))
     }
 
     @Test fun supportsMissingRequiredZipLinksAndModelSpecificExtras() {

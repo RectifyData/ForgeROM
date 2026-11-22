@@ -21,10 +21,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,6 +37,7 @@ import com.forgerom.app.ai.RomArtifact
 import com.forgerom.app.ai.RomBug
 import com.forgerom.app.ai.RomExtraZip
 import com.forgerom.app.ai.RomItem
+import com.forgerom.app.ai.PublicFolderAccess
 
 /**
  * Details are deliberately read-only. Community links and metadata must never be
@@ -196,16 +201,17 @@ private fun ExtraZipCard(zip: RomExtraZip) {
                 Text(stringResource(R.string.extra_zips_published_hash, it),
                     style = MaterialTheme.typography.bodySmall)
             }
-            if (zip.url == null && zip.directUrl == null) {
+            if (zip.url == null && zip.directUrl == null && zip.folderAccess == null) {
                 Text(stringResource(R.string.extra_zips_missing),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error)
             }
-            zip.url?.let { link ->
+            zip.url?.takeUnless { it == zip.folderAccess?.folderUrl }?.let { link ->
                 OutlinedButton(onClick = { browser.openUri(link) }) {
                     Text(stringResource(R.string.rom_details_page))
                 }
             }
+            zip.folderAccess?.let { access -> PublicFolderAccessView(access) }
             zip.directUrl?.let { link ->
                 FilledTonalButton(onClick = { browser.openUri(link) }) {
                     Text(stringResource(R.string.rom_details_mirror))
@@ -245,14 +251,49 @@ private fun ArtifactCard(artifact: RomArtifact) {
                 Text(stringResource(R.string.rom_details_file_version, it),
                     style = MaterialTheme.typography.labelMedium)
             }
-            OutlinedButton(onClick = { browser.openUri(artifact.url) }) {
-                Text(stringResource(R.string.rom_details_page))
+            if (artifact.url != artifact.folderAccess?.folderUrl) {
+                OutlinedButton(onClick = { browser.openUri(artifact.url) }) {
+                    Text(stringResource(R.string.rom_details_page))
+                }
             }
+            artifact.folderAccess?.let { access -> PublicFolderAccessView(access) }
             artifact.directUrl?.let { direct ->
                 FilledTonalButton(onClick = { browser.openUri(direct) }) {
                     Text(stringResource(R.string.rom_details_mirror))
                 }
             }
+        }
+    }
+}
+
+/** Browser access only; never invoke host debrid APIs or download managers for folders. */
+@Composable
+private fun PublicFolderAccessView(access: PublicFolderAccess) {
+    val browser = LocalUriHandler.current
+    val clipboard = LocalClipboardManager.current
+    var copied by remember(access.folderUrl, access.publicPassword) { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = { browser.openUri(access.folderUrl) }) {
+            Text(stringResource(R.string.folder_access_open))
+        }
+        access.publicPassword?.let { password ->
+            Text(stringResource(R.string.folder_access_password, password),
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            FilledTonalButton(onClick = {
+                clipboard.setText(AnnotatedString(password))
+                copied = true
+            }) {
+                Text(stringResource(if (copied) R.string.folder_access_copied
+                    else R.string.folder_access_copy))
+            }
+            access.passwordSourceUrl?.let { source ->
+                OutlinedButton(onClick = { browser.openUri(source) }) {
+                    Text(stringResource(R.string.folder_access_password_source))
+                }
+            }
+            Text(stringResource(R.string.folder_access_caution),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

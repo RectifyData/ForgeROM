@@ -30,6 +30,14 @@ data class DownloadInfo(
     val sha256: String?
 )
 
+/** Browser-only folder, optionally with an OWNER-PUBLISHED password and citation.
+ * Never use this password to bypass a host or authenticate automatically. */
+data class PublicFolderAccess(
+    val folderUrl: String,
+    val publicPassword: String? = null,
+    val passwordSourceUrl: String? = null
+)
+
 /** A linked release package or a separate partition image. URLs are unverified metadata, never flash commands. */
 data class RomArtifact(
     val label: String,
@@ -37,7 +45,8 @@ data class RomArtifact(
     val directUrl: String? = null,
     val version: String? = null,
     val fileName: String? = null,
-    val partition: String? = null
+    val partition: String? = null,
+    val folderAccess: PublicFolderAccess? = null
 )
 
 /** Optional or maintainer-required ZIP. Metadata NEVER authorizes repartitioning or flashing. */
@@ -52,7 +61,8 @@ data class RomExtraZip(
     val version: String? = null,
     val notes: String? = null,
     val sha256: String? = null,
-    val applicableModels: List<String> = emptyList()
+    val applicableModels: List<String> = emptyList(),
+    val folderAccess: PublicFolderAccess? = null
 )
 
 /** Reported by a ROM maintainer; status is not a device test result. */

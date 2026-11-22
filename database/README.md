@@ -68,3 +68,27 @@ The app displays these fields in the **Info | Downloads/installs | Bugs** tabs o
 Keep the exact ROM version alongside its kernel and vendor images. Do not imply that images from an older release work with a newer ZIP. Record unsupported storage variants and failed features explicitly. Use trusted HTTPS sources where possible; raw JSON and mirrors are not cryptographically verified. Any proposed root-based install still requires a separately verified image and device-specific recovery instructions.
 
 ZIP metadata is **display-only**. An HTTPS source link, published SHA-256, or maintainer statement is not a flashing authorization. Repartitioning tools may destroy data; never trigger installation, partition changes, or root commands from a remote catalogue entry. For dependencies that vary by model, set `models` on the individual `extra_zips` item. Show a missing link rather than inventing or substituting one.
+
+## Public folder hosts (GoFile and similar)
+
+For packages, partition images, and required/optional ZIPs, a listing can additionally provide:
+
+- `folder_url`: the original HTTPS folder URL, opened in the user's browser
+- `public_password`: only a password the file owner explicitly published for public access
+- `password_source_url`: an HTTPS link to the owner's public message announcing that password
+
+All three can be supplied alongside the regular `url`; for folder-only entries, a package can omit `url` (the original folder becomes its link). For an extra ZIP, a folder URL also counts as a reference to the file, not an automatically downloadable ZIP.
+
+Example for a *fictional* public folder:
+
+```json
+{
+  "label": "ROM download folder",
+  "version": "v1",
+  "folder_url": "https://gofile.io/d/EXAMPLE",
+  "public_password": "EXAMPLE_OWNER_SHARED_CODE",
+  "password_source_url": "https://example.org/maintainer-public-post"
+}
+```
+
+The app shows the original folder button, displays the publicly shared password and lets the user copy it. The password is only shown if the owner-publication link is a valid HTTPS URL; otherwise the app ignores that field. Do not add personal logins, nonpublic credentials, tokens, or guessed passwords. The app neither attempts debrid/unlock services nor enters passwords on behalf of the user. No folder entry authorizes flashing or repartitioning.

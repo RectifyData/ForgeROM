@@ -5,6 +5,7 @@ import com.forgerom.app.ai.RomArtifact
 import com.forgerom.app.ai.RomBug
 import com.forgerom.app.ai.RomExtraZip
 import com.forgerom.app.ai.RomItem
+import com.forgerom.app.ai.PublicFolderAccess
 import com.forgerom.app.ai.UiText
 import com.forgerom.app.device.DeviceInfo
 import com.forgerom.app.device.RemoteDeviceDatabase
@@ -34,6 +35,19 @@ object CuratedRomParser {
             uri.host != null && uri.userInfo == null && uri.port in listOf(-1, 443)) input else null
     }
 
+    /** Only display passwords accompanied by an HTTPS citation of the owner's public post. */
+    private fun JSONObject.publicFolder(): PublicFolderAccess? {
+        val folder = trustedWebLink(string("folder_url", 2048)) ?: return null
+        val citation = trustedWebLink(string("password_source_url", 2048))
+        // A password alone is not proof of permission to share it; require the owner's public post.
+        val supplied = optString("public_password", "")
+        val password = supplied.takeIf { value ->
+            citation != null && value.length in 1..128 && value.none { it.isISOControl() }
+        }
+        return PublicFolderAccess(folderUrl = folder, publicPassword = password,
+            passwordSourceUrl = if (password == null) null else citation)
+    }
+
     private fun modelKey(text: String): String = text.uppercase(Locale.ROOT)
         .replace("/DS", "").replace(" ", "").trim()
 
@@ -51,7 +65,8 @@ object CuratedRomParser {
         val out = ArrayList<RomArtifact>()
         for (i in 0 until minOf(array.length(), 24)) {
             val a = array.optJSONObject(i) ?: continue
-            val url = trustedWebLink(a.string("url", 2048)) ?: continue
+            val folder = a.publicFolder()
+            val url = trustedWebLink(a.string("url", 2048)) ?: folder?.folderUrl ?: continue
             val partition = if (partitionImages) a.string("partition", 40)?.lowercase(Locale.ROOT)
                 ?.takeIf { it.matches(Regex("[a-z0-9_]{1,40}")) } ?: continue else null
             val label = a.string("label", 100) ?: continue
@@ -61,7 +76,8 @@ object CuratedRomParser {
                 directUrl = trustedWebLink(a.string("direct_url", 2048)),
                 version = a.string("version", 40),
                 fileName = a.string("file_name", 140),
-                partition = partition
+                partition = partition,
+                folderAccess = folder
             )
         }
         return out
@@ -95,7 +111,8 @@ object CuratedRomParser {
                 version = entry.string("version", 40),
                 notes = entry.string("notes", 400),
                 sha256 = hash,
-                applicableModels = modelNames
+                applicableModels = modelNames,
+                folderAccess = entry.publicFolder()
             )
         }
         return items.distinctBy { it.label.lowercase(Locale.ROOT) + "|" + (it.fileName ?: "") }
