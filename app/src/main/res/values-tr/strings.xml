@@ -189,4 +189,27 @@
     <string name="installer_reboot_info">Recovery açıldığında İndirilenler/ForgeROM içinden ZIP dosyasını manuel seçin.</string>
     <string name="installer_need_detected">Kurulum için fiziksel cihazı seçin.</string>
     <string name="installer_status">Durum</string>
+    <!-- Per-ROM details tabs -->
+    <string name="rom_details_info">Bilgi</string>
+    <string name="rom_details_files">İndir/Kur</string>
+    <string name="rom_details_bugs">Hatalar</string>
+    <string name="rom_details_source">Proje sayfası</string>
+    <string name="rom_details_notes">Sürüm notları</string>
+    <string name="rom_details_warnings">Önemli uyumluluk uyarıları</string>
+    <string name="rom_details_credits">Katkıda bulunanlar</string>
+    <string name="rom_details_empty_files">Bu ROM için indirme dosyası listelenmemiş.</string>
+    <string name="rom_details_empty_bugs">Henüz sorun bildirilmemiş. Bu, ROM\'un hatasız olduğu anlamına gelmez.</string>
+    <string name="rom_details_reports">Geliştirici tarafından bildirilen sorunlar; bağımsız olarak doğrulanmadı.</string>
+    <string name="rom_details_partition">Bölüm: %1$s</string>
+    <string name="rom_details_file_version">Sürüm: %1$s</string>
+    <string name="rom_details_page">İndirme sayfasını aç</string>
+    <string name="rom_details_mirror">Doğrudan ayna (doğrulanmamış)</string>
+    <string name="rom_details_download_caution">Harici dosyaların sağlama toplamı ForgeROM tarafından doğrulanmadı. Kullanmadan önce sürüm talimatlarını okuyun.</string>
+    <string name="rom_details_manual_install">Kurulum elle yapılır. Geliştirici uyumluluğu açıkça doğrulamadıkça farklı sürümlerin bölüm imajlarını karıştırmayın.</string>
+    <string name="rom_details_report_status_broken">Çalışmıyor</string>
+    <string name="rom_details_report_status_unsupported">Desteklenmiyor</string>
+    <string name="rom_details_report_status_untested">Test edilmedi</string>
+    <string name="rom_details_report_status_fixed">Düzeltildi</string>
+    <string name="rom_details_report_status_other">Bildirildi</string>
+    <string name="rom_details_count">%1$d bildirilen sorun</string>
 </resources>

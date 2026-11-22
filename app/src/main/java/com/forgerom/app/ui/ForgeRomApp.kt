@@ -573,7 +573,6 @@ private fun StatusChip(status: String) {
 
 @Composable
 private fun RomCard(rom: RomItem, onDownload: (DownloadInfo) -> Unit) {
-    val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     var confirm by remember { mutableStateOf(false) }
     Card(
@@ -589,16 +588,7 @@ private fun RomCard(rom: RomItem, onDownload: (DownloadInfo) -> Unit) {
                 }
                 rom.status?.let { StatusChip(it) }
             }
-            rom.notes?.let { Text(it.asString(), style = MaterialTheme.typography.bodyMedium) }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = { uriHandler.openUri(rom.url) }) { Text(stringResource(R.string.open_source)) }
-                rom.download?.let { dl ->
-                    val label = dl.sizeBytes
-                        ?.let { stringResource(R.string.download_size, Formatter.formatShortFileSize(context, it)) }
-                        ?: stringResource(R.string.download_button)
-                    Button(onClick = { confirm = true }) { Text(label) }
-                }
-            }
+            RomDetailTabs(rom, onTrustedDownload = { confirm = true })
         }
     }
 

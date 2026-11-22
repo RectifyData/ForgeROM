@@ -19,8 +19,11 @@ import com.forgerom.app.device.DeviceCatalog
 import com.forgerom.app.device.DeviceInfo
 import com.forgerom.app.device.HardwareBootloader
 import com.forgerom.app.sources.FreeSources
+import com.forgerom.app.sources.RemoteRomCatalog
 import com.forgerom.app.sources.SourceParsers
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -108,6 +111,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val fastClient = client.newBuilder().callTimeout(20, TimeUnit.SECONDS).build()
     private val catalog = DeviceCatalog(app, fastClient)
     private val freeSources = FreeSources(fastClient)
+    private val communityRoms = RemoteRomCatalog(app, fastClient)
     private val cache = ResultCache(app)
     private val updateChecker = UpdateChecker(fastClient)
     private val appVersion: String = try {
@@ -435,7 +439,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             val hit = withContext(Dispatchers.IO) { cache.get(key) }
             // Ignore the answer if the user switched to another device in the meantime.
             val stillSame = _state.value.activeDevice?.let { cacheKey(it) } == key
-            if (stillSame) _state.update { it.copy(result = hit?.result, cachedAt = hit?.savedAt) }
+            if (stillSame) _state.update {
+                if (it.searching || it.aiSearching || it.result != null) it
+                else it.copy(result = hit?.result, cachedAt = hit?.savedAt)
+            }
         }
     }
 
@@ -450,9 +457,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(searching = true, error = null) }
         searchJob = viewModelScope.launch {
             try {
-                val free = freeSources.search(device)
+                // Provider and community ROM records load in parallel, including when offline.
+                // Community entries are display-only and never grant flash permissions.
+                val (free, curated) = coroutineScope {
+                    val officialTask = async { freeSources.search(device) }
+                    val curatedTask = async { communityRoms.search(device) }
+                    officialTask.await() to curatedTask.await()
+                }
                 if (epoch != searchEpoch || _state.value.activeDevice?.let(::cacheKey) != key) return@launch
-                if (!free.reachable) {
+                if (!free.reachable && curated.isEmpty()) {
                     _state.update { it.copy(searching = false, error = UiError(R.string.err_network)) }
                     return@launch
                 }
@@ -461,7 +474,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 val result = RomSearchResult(
                     marketingName = free.marketingName,
                     bootloader = bootloader,
-                    roms = free.roms, recoveries = free.recoveries,
+                    // Prefer the richer community listing when both sources point to the same URL.
+                    roms = (curated + free.roms).distinctBy { it.url },
+                    recoveries = free.recoveries,
                     warnings = free.warnings + UiText.raw(
                         "Availability is not installation compatibility. Verify firmware, ABI and partitions in the official instructions")
                 )

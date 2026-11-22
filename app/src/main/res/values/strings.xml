@@ -226,4 +226,27 @@
     <string name="installer_reboot_info">After reboot, select Install in your custom recovery and navigate to Downloads/ForgeROM. This action does not automatically flash the ZIP.</string>
     <string name="installer_need_detected">Select the physically detected phone before using the installer.</string>
     <string name="installer_status">Status</string>
+    <!-- Per-ROM details tabs -->
+    <string name="rom_details_info">Info</string>
+    <string name="rom_details_files">Downloads/installs</string>
+    <string name="rom_details_bugs">Bugs</string>
+    <string name="rom_details_source">Project page</string>
+    <string name="rom_details_notes">Release notes</string>
+    <string name="rom_details_warnings">Important compatibility warnings</string>
+    <string name="rom_details_credits">Credits</string>
+    <string name="rom_details_empty_files">No downloadable files are listed for this ROM.</string>
+    <string name="rom_details_empty_bugs">No issues have been listed yet. This does not mean the ROM is bug-free.</string>
+    <string name="rom_details_reports">Maintainer-reported issues; not independently verified.</string>
+    <string name="rom_details_partition">Partition: %1$s</string>
+    <string name="rom_details_file_version">Release: %1$s</string>
+    <string name="rom_details_page">Open download page</string>
+    <string name="rom_details_mirror">Direct mirror (unverified)</string>
+    <string name="rom_details_download_caution">External files are not checksum-verified by ForgeROM. Read the release instructions before using them.</string>
+    <string name="rom_details_manual_install">Installation is manual. Never mix partition images from different release versions unless the maintainer explicitly confirms compatibility.</string>
+    <string name="rom_details_report_status_broken">Broken</string>
+    <string name="rom_details_report_status_unsupported">Unsupported</string>
+    <string name="rom_details_report_status_untested">Not tested</string>
+    <string name="rom_details_report_status_fixed">Fixed</string>
+    <string name="rom_details_report_status_other">Reported</string>
+    <string name="rom_details_count">%1$d reported issues</string>
 </resources>

@@ -6,6 +6,8 @@ import com.forgerom.app.ai.BootloaderStatus
 import com.forgerom.app.ai.DownloadInfo
 import com.forgerom.app.ai.RecoveryItem
 import com.forgerom.app.ai.RomItem
+import com.forgerom.app.ai.RomArtifact
+import com.forgerom.app.ai.RomBug
 import com.forgerom.app.ai.RomSearchResult
 import com.forgerom.app.ai.UiText
 import org.json.JSONArray
@@ -107,6 +109,21 @@ class ResultCache(private val context: Context) {
                         .put("size", dl.sizeBytes ?: JSONObject.NULL)
                         .put("sha", dl.sha256 ?: JSONObject.NULL)
                 } ?: JSONObject.NULL)
+                .put("artifacts", JSONArray(rom.artifacts.map { item ->
+                    JSONObject()
+                        .put("label", item.label)
+                        .put("url", item.url)
+                        .put("direct", item.directUrl ?: JSONObject.NULL)
+                        .put("version", item.version ?: JSONObject.NULL)
+                        .put("file", item.fileName ?: JSONObject.NULL)
+                        .put("partition", item.partition ?: JSONObject.NULL)
+                }))
+                .put("bugs", JSONArray(rom.bugs.map { bug ->
+                    JSONObject().put("component", bug.component).put("status", bug.status)
+                        .put("details", bug.details ?: JSONObject.NULL)
+                }))
+                .put("safetyNotes", JSONArray(rom.safetyNotes))
+                .put("credits", JSONArray(rom.credits))
         }))
         .put("recoveries", JSONArray(r.recoveries.map { rec ->
             JSONObject()
@@ -138,7 +155,29 @@ class ResultCache(private val context: Context) {
                             sizeBytes = if (dl.isNull("size")) null else dl.optLong("size"),
                             sha256 = dl.str("sha")
                         )
-                    }
+                    },
+                    artifacts = x.optJSONArray("artifacts")?.let { entries ->
+                        (0 until entries.length()).mapNotNull { idx ->
+                            val v = entries.optJSONObject(idx) ?: return@mapNotNull null
+                            val label = v.str("label") ?: return@mapNotNull null
+                            val url = v.str("url") ?: return@mapNotNull null
+                            RomArtifact(label, url, v.str("direct"), v.str("version"),
+                                v.str("file"), v.str("partition"))
+                        }
+                    } ?: emptyList(),
+                    bugs = x.optJSONArray("bugs")?.let { entries ->
+                        (0 until entries.length()).mapNotNull { idx ->
+                            val v = entries.optJSONObject(idx) ?: return@mapNotNull null
+                            val component = v.str("component") ?: return@mapNotNull null
+                            RomBug(component, v.str("status") ?: "untested", v.str("details"))
+                        }
+                    } ?: emptyList(),
+                    safetyNotes = x.optJSONArray("safetyNotes")?.let { rows ->
+                        (0 until rows.length()).mapNotNull { rows.optString(it).ifBlank { null } }
+                    } ?: emptyList(),
+                    credits = x.optJSONArray("credits")?.let { rows ->
+                        (0 until rows.length()).mapNotNull { rows.optString(it).ifBlank { null } }
+                    } ?: emptyList()
                 )
             }
         }
