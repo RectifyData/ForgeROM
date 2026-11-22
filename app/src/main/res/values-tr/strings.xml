@@ -164,4 +164,18 @@
     <string name="update_install_verified">Doğrulanmış güncellemeyi yükle</string>
     <string name="update_installer_opened">Android yükleyici açıldı. Güncellemeyi ekranda onaylayın.</string>
     <string name="update_install_unavailable">Yükleyici kullanılamıyor; APK dosyasını doğrulayın.</string>
+    <string name="tab_discover">Keşfet</string>
+    <string name="tab_downloads">İndirilenler</string>
+    <string name="tab_device">Cihaz</string>
+    <string name="tab_settings">Ayarlar</string>
+    <string name="downloads_desc">Takip edilen indirmeler ve doğrulama durumu</string>
+    <string name="downloads_refresh">İndirmeleri denetle</string>
+    <string name="downloads_empty">Henüz ForgeROM üzerinden indirilen dosya yok.</string>
+    <string name="device_desc">Cihaz bilgileri, donanım durumu ve veritabanı</string>
+    <string name="device_use_detected">Algılanan cihazı kullan</string>
+    <string name="device_database_title">GitHub telefon veritabanı</string>
+    <string name="device_database_desc">Cihaz bilgileri GitHub üzerinden alınır ve çevrimdışı saklanır.</string>
+    <string name="device_database_refresh">Veritabanını yenile</string>
+    <string name="device_database_warning">Veritabanı kayıtları ROM veya önyükleyici uyumluluğunu kanıtlamaz.</string>
+    <string name="settings_desc">Görünüm, cihaz modu ve tercihler</string>
 </resources>

@@ -201,4 +201,18 @@
     <string name="install_result">Installer: %1$s</string>
     <string name="install_confirm_title">Queue recovery installation?</string>
     <string name="install_confirm_body">This will verify the ZIP, copy it to Downloads, queue a recovery script and reboot into recovery. Installation may erase data or make the device unbootable if the recovery or ROM is incompatible. ForgeROM cannot verify your recovery implementation.</string>
+    <string name="tab_discover">Discover</string>
+    <string name="tab_downloads">Downloads</string>
+    <string name="tab_device">Device</string>
+    <string name="tab_settings">Settings</string>
+    <string name="downloads_desc">Tracked downloads and their verification status</string>
+    <string name="downloads_refresh">Check downloads</string>
+    <string name="downloads_empty">Nothing downloaded through ForgeROM yet. Find a ROM in Discover.</string>
+    <string name="device_desc">Device details, hardware signals and database</string>
+    <string name="device_use_detected">Use detected device</string>
+    <string name="device_database_title">GitHub phone database</string>
+    <string name="device_database_desc">Catalogue metadata is fetched from RectifyData/ForgeROM on GitHub and stored offline.</string>
+    <string name="device_database_refresh">Refresh database</string>
+    <string name="device_database_warning">Database entries only identify devices. They are not proof of ROM or bootloader compatibility.</string>
+    <string name="settings_desc">Appearance, device mode and preferences</string>
 </resources>
