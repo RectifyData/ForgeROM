@@ -59,7 +59,10 @@ class MainActivity : AppCompatActivity() {
                         onDismissUpdate = vm::dismissUpdate,
                         onInstallVerifiedUpdate = vm::installVerifiedUpdate,
                         onDismissCrash = vm::dismissCrash,
-                        onSetUpdateCheck = vm::setUpdateCheck
+                        onSetUpdateCheck = vm::setUpdateCheck,
+                        onRefreshCatalog = vm::refreshCatalog,
+                        onRefreshHardware = vm::refreshHardware,
+                        onVerifyDownloads = vm::verifyDownloads
                     )
                 )
             }

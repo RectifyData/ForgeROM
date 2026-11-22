@@ -16,6 +16,7 @@ import com.forgerom.app.device.BootloaderPolicy
 import com.forgerom.app.device.CatalogEntry
 import com.forgerom.app.device.DeviceCatalog
 import com.forgerom.app.device.DeviceInfo
+import com.forgerom.app.device.HardwareBootloader
 import com.forgerom.app.sources.FreeSources
 import com.forgerom.app.sources.SourceParsers
 import kotlinx.coroutines.CancellationException
@@ -62,7 +63,11 @@ data class UiState(
     val error: UiError? = null,
     val pickerQuery: String = "",
     val pickerResults: List<CatalogEntry> = emptyList(),
-    val pickerLoading: Boolean = false
+    val pickerLoading: Boolean = false,
+    val catalogStatus: String = "Checking GitHub phone database…",
+    val catalogRefreshing: Boolean = false,
+    val hardware: HardwareBootloader.Report? = null,
+    val hardwareRefreshing: Boolean = false
 ) {
     /** The device used for searching: the manual selection if any, otherwise the detected one. */
     val activeDevice: DeviceInfo?
@@ -118,6 +123,34 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(searching = false, aiSearching = false) }
     }
 
+    fun refreshHardware() {
+        _state.update { it.copy(hardwareRefreshing = true) }
+        viewModelScope.launch {
+            val result = HardwareBootloader.inspect()
+            _state.update { it.copy(hardware = result, hardwareRefreshing = false) }
+        }
+    }
+
+    fun refreshCatalog() {
+        _state.update { it.copy(catalogRefreshing = true) }
+        viewModelScope.launch {
+            try {
+                catalog.refresh()
+                val current = _state.value
+                val detected = current.detected
+                val display = detected?.let { catalog.resolve(it)?.name }
+                val results = if (current.pickerQuery.isBlank()) emptyList()
+                    else catalog.search(current.pickerQuery)
+                _state.update { it.copy(catalogStatus = catalog.source,
+                    catalogRefreshing = false, pickerResults = results,
+                    detectedName = display ?: it.detectedName) }
+            } catch (e: Exception) {
+                _state.update { it.copy(catalogRefreshing = false,
+                    catalogStatus = "Offline — using cached catalogue") }
+            }
+        }
+    }
+
     fun verifyDownloads() {
         viewModelScope.launch {
             val results = DownloadVerifier.scan(getApplication())
@@ -142,9 +175,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         showKnownUpdate()
         checkForUpdate()
         verifyDownloads()
+        refreshHardware()
         viewModelScope.launch {
             val entry = catalog.resolve(device)
-            _state.update { it.copy(detectedName = entry?.name, resolvingName = false) }
+            _state.update { it.copy(detectedName = entry?.name, resolvingName = false, catalogStatus = catalog.source) }
         }
         // Returning user who chose root mode: check su again (no prompt if already allowed).
         if (prefs.getString("mode", "suggest") == "root" && prefs.getBoolean("onboarded", false)) {

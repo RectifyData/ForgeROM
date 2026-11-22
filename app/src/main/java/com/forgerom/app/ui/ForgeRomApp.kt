@@ -114,7 +114,10 @@ class Actions(
     val onDismissUpdate: () -> Unit,
     val onInstallVerifiedUpdate: (String) -> Unit,
     val onDismissCrash: () -> Unit,
-    val onSetUpdateCheck: (Boolean) -> Unit
+    val onSetUpdateCheck: (Boolean) -> Unit,
+    val onRefreshCatalog: () -> Unit,
+    val onRefreshHardware: () -> Unit,
+    val onVerifyDownloads: () -> Unit
 )
 
 private const val CONSOLE_URL = "https://console.anthropic.com/settings/keys"
@@ -139,7 +142,7 @@ fun ForgeRomApp(state: UiState, a: Actions) {
     ) { screen ->
         when (screen) {
             Screen.ONBOARDING -> OnboardingScreen(state.rootChecking, a.onSetLanguage, a.onCompleteOnboarding)
-            Screen.MAIN -> MainScreen(state, a)
+            Screen.MAIN -> ForgeHomeTabs(state, a)
             Screen.PICKER -> PickerScreen(state, a)
             Screen.SETTINGS -> SettingsScreen(state, a)
             Screen.GUIDE -> GuideScreen(a.onCloseGuide)
@@ -150,7 +153,7 @@ fun ForgeRomApp(state: UiState, a: Actions) {
 // ───────────────────────── Main screen ─────────────────────────
 
 @Composable
-private fun MainScreen(state: UiState, a: Actions) {
+internal fun MainScreen(state: UiState, a: Actions) {
     // English name of the UI language, so the AI writes its notes in the same language.
     val language = LocalConfiguration.current.locales[0].getDisplayLanguage(Locale.ENGLISH)
 
@@ -187,27 +190,6 @@ private fun MainScreen(state: UiState, a: Actions) {
                             stringResource(if (state.searching) R.string.search_button_busy else R.string.search_button),
                             style = MaterialTheme.typography.titleMedium
                         )
-                    }
-                }
-            }
-            state.downloadChecks.forEach { check ->
-                item {
-                    Box(Modifier.h()) {
-                        val (title, style) = when (check.status) {
-                            DownloadVerification.Status.VERIFIED -> R.string.download_verified to InfoStyle.POSITIVE
-                            DownloadVerification.Status.UNVERIFIED -> R.string.download_unverified to InfoStyle.ERROR
-                            DownloadVerification.Status.FAILED -> R.string.download_invalid to InfoStyle.ERROR
-                            DownloadVerification.Status.PENDING -> R.string.download_checking to InfoStyle.INFO
-                        }
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            InfoCard(stringResource(title, check.filename) + " " + check.details, style)
-                            if (check.status == DownloadVerification.Status.VERIFIED &&
-                                check.filename.endsWith(".apk", true)) {
-                                Button(onClick = { a.onInstallVerifiedUpdate(check.filename) }) {
-                                    Text(stringResource(R.string.update_install_verified))
-                                }
-                            }
-                        }
                     }
                 }
             }
