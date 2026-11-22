@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "description": "Community-maintained searchable device catalogue. Device listings DO NOT imply ROM, recovery, or bootloader compatibility.",
+  "devices": [
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy S10+",
+      "codename": "beyond2lte",
+      "models": [
+        "SM-G975F",
+        "SM-G975F/DS"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy S10",
+      "codename": "beyond1lte",
+      "models": [
+        "SM-G973F",
+        "SM-G973F/DS"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy S10e",
+      "codename": "beyond0lte",
+      "models": [
+        "SM-G970F",
+        "SM-G970F/DS"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy S10+ Snapdragon",
+      "codename": "beyond2q",
+      "models": [
+        "SM-G975U",
+        "SM-G975U1"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy A20s",
+      "codename": "a20s",
+      "models": [
+        "SM-A207F",
+        "SM-A207M"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy Note9",
+      "codename": "crownlte",
+      "models": [
+        "SM-N960F",
+        "SM-N960F/DS"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy S9",
+      "codename": "starlte",
+      "models": [
+        "SM-G960F",
+        "SM-G960F/DS"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy S9+",
+      "codename": "star2lte",
+      "models": [
+        "SM-G965F",
+        "SM-G965F/DS"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy Note10",
+      "codename": "d1",
+      "models": [
+        "SM-N970F"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy Note10+",
+      "codename": "d2s",
+      "models": [
+        "SM-N975F"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy A50",
+      "codename": "a50",
+      "models": [
+        "SM-A505F"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy A51",
+      "codename": "a51",
+      "models": [
+        "SM-A515F"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy S20 FE 5G",
+      "codename": "r8q",
+      "models": [
+        "SM-G781B"
+      ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy S20 FE 4G Snapdragon",
+      "codename": "r8q",
+      "models": [
+        "SM-G780G"
+      ]
+    },
+    {
+      "brand": "Google",
+      "marketing": "Pixel 2",
+      "codename": "walleye",
+      "models": [
+        "G011A"
+      ]
+    },
+    {
+      "brand": "Google",
+      "marketing": "Pixel 2 XL",
+      "codename": "taimen",
+      "models": [
+        "G011C"
+      ]
+    },
+    {
+      "brand": "Google",
+      "marketing": "Pixel 6 Pro",
+      "codename": "raven",
+      "models": [
+        "GLU0G"
+      ]
+    },
+    {
+      "brand": "Google",
+      "marketing": "Pixel 8 Pro",
+      "codename": "husky",
+      "models": [
+        "GC3VE"
+      ]
+    }
+  ]
+}
