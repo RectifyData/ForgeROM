@@ -75,7 +75,7 @@ For packages, partition images, and required/optional ZIPs, a listing can additi
 
 - `folder_url`: the original HTTPS folder URL, opened in the user's browser
 - `public_password`: only a password the file owner explicitly published for public access
-- `password_source_url`: an HTTPS link to the owner's public message announcing that password
+- `password_source_url` (optional): an HTTPS link to the owner's announcement, if available
 
 All three can be supplied alongside the regular `url`; for folder-only entries, a package can omit `url` (the original folder becomes its link). For an extra ZIP, a folder URL also counts as a reference to the file, not an automatically downloadable ZIP.
 
@@ -91,4 +91,4 @@ Example for a *fictional* public folder:
 }
 ```
 
-The app shows the original folder button, displays the publicly shared password and lets the user copy it. The password is only shown if the owner-publication link is a valid HTTPS URL; otherwise the app ignores that field. Do not add personal logins, nonpublic credentials, tokens, or guessed passwords. The app neither attempts debrid/unlock services nor enters passwords on behalf of the user. No folder entry authorizes flashing or repartitioning.
+The app shows the original folder button, displays the publicly shared password and lets the user copy it. The password is shown directly from the curated database without requiring a separate public source URL. If `password_source_url` is present, the app offers it as an optional reference; invalid source URLs are ignored without hiding the password. Do not add personal logins, nonpublic credentials, tokens, or guessed passwords. The app neither attempts debrid/unlock services nor enters passwords on behalf of the user. No folder entry authorizes flashing or repartitioning.

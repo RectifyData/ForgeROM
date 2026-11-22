@@ -236,5 +236,5 @@
     <string name="folder_access_copy">Parolayı kopyala</string>
     <string name="folder_access_copied">Parola kopyalandı</string>
     <string name="folder_access_password_source">Sahibinin herkese açık parola paylaşımını gör</string>
-    <string name="folder_access_caution">Bu parola katalogda yükleyen kişiye atfedilir; bağlantıdaki kaynaktan doğrulayın. Uygulama dosya barındırma kısıtlamalarını aşmaz.</string>
+    <string name="folder_access_caution">Parola ROM kataloğundan alınır. ForgeROM, barındırma kısıtlamalarını aşmadan orijinal klasörü açar.</string>
 </resources>

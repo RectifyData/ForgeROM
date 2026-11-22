@@ -39,13 +39,14 @@ object CuratedRomParser {
     private fun JSONObject.publicFolder(): PublicFolderAccess? {
         val folder = trustedWebLink(string("folder_url", 2048)) ?: return null
         val citation = trustedWebLink(string("password_source_url", 2048))
-        // A password alone is not proof of permission to share it; require the owner's public post.
+        // An access password listed in the community catalogue does not require a
+        // separate announcement URL. A source link, if supplied, remains optional.
         val supplied = if (isNull("public_password")) "" else optString("public_password", "")
         val password = supplied.takeIf { value ->
-            citation != null && value.length in 1..128 && value.isNotBlank() && value.none { it.isISOControl() }
+            value.length in 1..128 && value.isNotBlank() && value.none { it.isISOControl() }
         }
         return PublicFolderAccess(folderUrl = folder, publicPassword = password,
-            passwordSourceUrl = if (password == null) null else citation)
+            passwordSourceUrl = citation)
     }
 
     private fun modelKey(text: String): String = text.uppercase(Locale.ROOT)

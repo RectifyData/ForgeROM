@@ -83,14 +83,24 @@ class CuratedRomParserTest {
         assertEquals(null, zip.url)
     }
 
-    @Test fun doesNotExposePasswordsWithoutAnOwnerCitation() {
-        val removed = fixture.replace(
+    @Test fun passwordDoesNotRequirePublicSourceLink() {
+        val withoutSource = fixture.replace(
+            ", \"password_source_url\": \"https://xdaforums.com/t/rikka\"",
+            "")
+        val rom = CuratedRomParser.parse(withoutSource, j7).single()
+        assertEquals("OwnerPublishedExample", rom.artifacts.first().folderAccess?.publicPassword)
+        assertEquals("ExamplePublicCode", rom.extraZips.first().folderAccess?.publicPassword)
+        assertEquals(null, rom.artifacts.first().folderAccess?.passwordSourceUrl)
+        assertTrue(rom.artifacts.first().folderAccess?.folderUrl!!.startsWith("https://"))
+    }
+
+    @Test fun invalidOptionalSourceDoesNotHidePassword() {
+        val changed = fixture.replace(
             "\"password_source_url\": \"https://xdaforums.com/t/rikka\"",
             "\"password_source_url\": \"http://invalid.example/secret\"")
-        val rom = CuratedRomParser.parse(removed, j7).single()
-        assertEquals(null, rom.artifacts.first().folderAccess?.publicPassword)
-        assertEquals(null, rom.extraZips.first().folderAccess?.publicPassword)
-        assertTrue(rom.artifacts.first().folderAccess?.folderUrl!!.startsWith("https://"))
+        val rom = CuratedRomParser.parse(changed, j7).single()
+        assertEquals("OwnerPublishedExample", rom.artifacts.first().folderAccess?.publicPassword)
+        assertEquals(null, rom.artifacts.first().folderAccess?.passwordSourceUrl)
     }
 
     @Test fun gofileFolderWithoutASeparateDownloadPageIsShown() {

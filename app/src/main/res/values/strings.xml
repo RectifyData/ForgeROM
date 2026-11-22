@@ -273,5 +273,5 @@
     <string name="folder_access_copy">Copy password</string>
     <string name="folder_access_copied">Password copied</string>
     <string name="folder_access_password_source">View owner\'s public password post</string>
-    <string name="folder_access_caution">This password is attributed to the uploader by the catalogue; verify it at the linked source. The app does not bypass hosting restrictions.</string>
+    <string name="folder_access_caution">Password provided by the ROM catalogue. ForgeROM opens the original folder without bypassing hosting restrictions.</string>
 </resources>
