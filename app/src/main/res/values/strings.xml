@@ -209,7 +209,6 @@
     <string name="downloads_refresh">Check downloads</string>
     <string name="downloads_empty">Nothing downloaded through ForgeROM yet. Find a ROM in Discover.</string>
     <string name="device_desc">Device details, hardware signals and database</string>
-    <string name="device_use_detected">Use detected device</string>
     <string name="device_database_title">GitHub phone database</string>
     <string name="device_database_desc">Catalogue metadata is fetched from RectifyData/ForgeROM on GitHub and stored offline.</string>
     <string name="device_database_refresh">Refresh database</string>
