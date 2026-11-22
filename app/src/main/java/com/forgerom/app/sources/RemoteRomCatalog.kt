@@ -116,6 +116,23 @@ object CuratedRomParser {
     }
 }
 
+/** Read to EOF, but refuse oversized untrusted metadata without allocating its full length. */
+internal object BoundedJsonReader {
+    fun read(input: java.io.InputStream, maxBytes: Int): String? {
+        require(maxBytes > 0)
+        val output = java.io.ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            if (read == 0) continue
+            if (output.size() > maxBytes - read) return null
+            output.write(buffer, 0, read)
+        }
+        return output.toString(Charsets.UTF_8.name())
+    }
+}
+
 /** Fresh GitHub request with a bounded offline cache. No remote command execution. */
 class RemoteRomCatalog(private val context: Context, private val client: OkHttpClient) {
     private val cache get() = File(context.filesDir, "forgerom_roms_v1.json")
@@ -128,8 +145,8 @@ class RemoteRomCatalog(private val context: Context, private val client: OkHttpC
                 .build()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) null
-                else response.body?.source()?.readByteArray(MAX_BYTES + 1L)?.let { bytes ->
-                    if (bytes.size <= MAX_BYTES) bytes.toString(Charsets.UTF_8) else null
+                else response.body?.byteStream()?.use { input ->
+                    BoundedJsonReader.read(input, MAX_BYTES)
                 }
             }
         } catch (e: CancellationException) {
