@@ -84,9 +84,13 @@ class CuratedRomParserTest {
     }
 
     @Test fun passwordDoesNotRequirePublicSourceLink() {
-        val withoutSource = fixture.replace(
-            ", \"password_source_url\": \"https://xdaforums.com/t/rikka\"",
-            "")
+        val withoutSource = fixture.lineSequence()
+            .filterNot { it.contains("\"password_source_url\"") }
+            .joinToString("\n")
+            .replace("\"public_password\": \"OwnerPublishedExample\",",
+                "\"public_password\": \"OwnerPublishedExample\"")
+            .replace("\"public_password\": \"ExamplePublicCode\",",
+                "\"public_password\": \"ExamplePublicCode\"")
         val rom = CuratedRomParser.parse(withoutSource, j7).single()
         assertEquals("OwnerPublishedExample", rom.artifacts.first().folderAccess?.publicPassword)
         assertEquals("ExamplePublicCode", rom.extraZips.first().folderAccess?.publicPassword)
