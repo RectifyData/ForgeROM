@@ -1,6 +1,8 @@
 package com.forgerom.app.ui
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,18 +21,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -39,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -56,6 +64,10 @@ import com.forgerom.app.device.HardwareBootloader
 @Composable
 internal fun ForgeHomeTabs(state: UiState, actions: Actions) {
     var tab by rememberSaveable { mutableStateOf("discover") }
+    val hasInstaller = state.mode == AppMode.ROOT && state.rootGranted
+    LaunchedEffect(hasInstaller) {
+        if (!hasInstaller && tab == "install") tab = "downloads"
+    }
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
@@ -72,6 +84,10 @@ internal fun ForgeHomeTabs(state: UiState, actions: Actions) {
                     selected = tab == "device", onClick = { tab = "device" },
                     icon = { Icon(Icons.Outlined.PhoneAndroid, null) }, label = { Text(stringResource(R.string.tab_device)) }
                 )
+                if (hasInstaller) NavigationBarItem(
+                    selected = tab == "install", onClick = { tab = "install" },
+                    icon = { Icon(Icons.Outlined.Build, null) }, label = { Text(stringResource(R.string.tab_install)) }
+                )
                 NavigationBarItem(
                     selected = tab == "settings", onClick = { tab = "settings" },
                     icon = { Icon(Icons.Outlined.Settings, null) }, label = { Text(stringResource(R.string.tab_settings)) }
@@ -83,6 +99,7 @@ internal fun ForgeHomeTabs(state: UiState, actions: Actions) {
             when (tab) {
                 "downloads" -> DownloadsPane(state, actions)
                 "device" -> DevicePane(state, actions)
+                "install" -> if (hasInstaller) InstallerPane(state, actions) else MainScreen(state, actions)
                 "settings" -> SettingsPane(state, actions)
                 else -> MainScreen(state, actions)
             }
@@ -246,6 +263,93 @@ private fun SettingsPane(state: UiState, a: Actions) {
         }
         item { OutlinedButton(onClick = a.onOpenGuide) { Text(stringResource(R.string.guide_button)) } }
         item { ReportButton(state) }
+        item { Spacer(Modifier.height(20.dp)) }
+    }
+}
+
+
+@Composable
+private fun InstallerPane(state: UiState, a: Actions) {
+    var publishedHash by rememberSaveable { mutableStateOf("") }
+    var confirmedCompatibility by rememberSaveable { mutableStateOf(false) }
+    var confirmReboot by remember { mutableStateOf(false) }
+    val picker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { fileUri ->
+        if (fileUri != null) a.onPrepareRecoveryZip(fileUri, publishedHash.trim())
+    }
+    if (confirmReboot) {
+        AlertDialog(
+            onDismissRequest = { confirmReboot = false },
+            title = { Text(stringResource(R.string.installer_reboot)) },
+            text = { Text(stringResource(R.string.installer_reboot_info)) },
+            confirmButton = {
+                TextButton(onClick = { confirmReboot = false; a.onRebootRecovery() }) {
+                    Text(stringResource(R.string.installer_reboot))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmReboot = false }) {
+                    Text(stringResource(R.string.action_back))
+                }
+            }
+        )
+    }
+    LazyColumn(modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        item { PaneHeader(stringResource(R.string.installer_title), stringResource(R.string.installer_subtitle)) }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(stringResource(R.string.installer_body))
+                    if (state.manual != null) {
+                        Text(stringResource(R.string.installer_need_detected),
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                    OutlinedTextField(
+                        value = publishedHash,
+                        onValueChange = { publishedHash = it.trim().take(64) },
+                        label = { Text(stringResource(R.string.installer_hash)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Checkbox(
+                            checked = confirmedCompatibility,
+                            onCheckedChange = { confirmedCompatibility = it }
+                        )
+                        Text(stringResource(R.string.installer_check), modifier = Modifier.weight(1f))
+                    }
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !state.installerPreparing && state.manual == null &&
+                            confirmedCompatibility && publishedHash.matches(Regex("[A-Fa-f0-9]{64}")),
+                        onClick = { picker.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }
+                    ) { Text(stringResource(R.string.installer_pick)) }
+                }
+            }
+        }
+        if (state.installerPreparing || state.installerMessage.isNotBlank()) {
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.installer_status), style = MaterialTheme.typography.titleMedium)
+                        if (state.installerPreparing) CircularProgressIndicator()
+                        Text(state.installerMessage, style = MaterialTheme.typography.bodyMedium)
+                        if (state.installerReady) {
+                            Text(state.installerLocation, style = MaterialTheme.typography.bodySmall)
+                            Button(onClick = { confirmReboot = true }, modifier = Modifier.fillMaxWidth()) {
+                                Text(stringResource(R.string.installer_reboot))
+                            }
+                            Text(stringResource(R.string.installer_reboot_info),
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+        }
         item { Spacer(Modifier.height(20.dp)) }
     }
 }
