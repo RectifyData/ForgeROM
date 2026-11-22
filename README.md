@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="Banner.png" alt="ForgeROM Logo" width="100%">
-</p>
+# THIS REPO IS FOR PULL REQUESTS ONLY!
 
 # ForgeROM 🚀 *(Work in Progress)*
 
