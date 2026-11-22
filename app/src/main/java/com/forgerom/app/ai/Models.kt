@@ -30,13 +30,30 @@ data class DownloadInfo(
     val sha256: String?
 )
 
+/** A linked release package or a separate partition image. URLs are unverified metadata, never flash commands. */
+data class RomArtifact(
+    val label: String,
+    val url: String,
+    val directUrl: String? = null,
+    val version: String? = null,
+    val fileName: String? = null,
+    val partition: String? = null
+)
+
+/** Reported by a ROM maintainer; status is not a device test result. */
+data class RomBug(val component: String, val status: String, val details: String? = null)
+
 data class RomItem(
     val name: String,
     val androidVersion: String?,
     val status: String?,   // official / unofficial / abandoned
     val url: String,
     val notes: UiText?,
-    val download: DownloadInfo? = null
+    val download: DownloadInfo? = null,
+    val artifacts: List<RomArtifact> = emptyList(),
+    val bugs: List<RomBug> = emptyList(),
+    val safetyNotes: List<String> = emptyList(),
+    val credits: List<String> = emptyList()
 )
 
 data class RecoveryItem(

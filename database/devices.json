@@ -153,6 +153,125 @@
       "models": [
         "GC3VE"
       ]
+    },
+    {
+      "brand": "Samsung",
+      "marketing": "Galaxy J7 Prime",
+      "codename": "on7xelte",
+      "models": [
+        "SM-G610F",
+        "SM-G610F/DS"
+      ],
+      "roms": [
+        {
+          "id": "rikkaos-oneui7-j7prime-v1",
+          "name": "RikkaOS One UI 7 — S21 FE 5G port",
+          "version": "v1.0",
+          "android_version": "15",
+          "status": "unstable",
+          "source_url": "https://xdaforums.com/t/unstable-rom-15-rikkaos-v1-0-oneui-7-for-j7-prime-port-from-s21-fe-5g.4791762/",
+          "notes": "Unofficial Android 15 One UI 7 port. Kernel 3.18.140. Repartition and F2FS instructions require manual review; do not treat this entry as an automatic installation recipe.",
+          "models": [
+            "SM-G610F",
+            "SM-G610F/DS"
+          ],
+          "packages": [
+            {
+              "label": "RikkaOS v1.1 — release post",
+              "version": "v1.1",
+              "url": "https://xdaforums.com/t/unstable-rom-15-rikkaos-v1-0-oneui-7-for-j7-prime-port-from-s21-fe-5g.4791762/post-90643282"
+            },
+            {
+              "label": "RikkaOS v1.0 — ROM ZIP",
+              "version": "v1.0",
+              "file_name": "RikkaOS-v1.0-OneUI-7-S21-FE.zip",
+              "url": "https://pixeldrain.com/u/hun47fzM",
+              "direct_url": "https://cdn.pixeldrain.eu.cc/hun47fzM"
+            }
+          ],
+          "extra_images": [
+            {
+              "partition": "vendor",
+              "label": "Vendor image",
+              "version": "v1.0",
+              "file_name": "vendor.img",
+              "url": "https://pixeldrain.com/u/trN4jRzR",
+              "direct_url": "https://cdn.pixeldrain.eu.cc/trN4jRzR"
+            },
+            {
+              "partition": "boot",
+              "label": "Revival kernel (boot image)",
+              "version": "v1.0",
+              "file_name": "Revival-Kernel.img",
+              "url": "https://pixeldrain.com/u/HPw2ERaG",
+              "direct_url": "https://cdn.pixeldrain.eu.cc/HPw2ERaG"
+            }
+          ],
+          "bugs": [
+            {
+              "component": "Face unlock",
+              "status": "broken",
+              "details": "Reported not working"
+            },
+            {
+              "component": "Dual SIM",
+              "status": "broken",
+              "details": "Reported not working"
+            },
+            {
+              "component": "SD card",
+              "status": "broken",
+              "details": "Reported not working"
+            },
+            {
+              "component": "KernelSU Manager",
+              "status": "broken",
+              "details": "Manager reportedly fails"
+            },
+            {
+              "component": "Recent apps",
+              "status": "broken",
+              "details": "Black-and-white rendering, attributed to gralloc"
+            },
+            {
+              "component": "Smart View",
+              "status": "broken",
+              "details": "Reported not working"
+            },
+            {
+              "component": "Samsung DeX",
+              "status": "broken",
+              "details": "Reported not working"
+            },
+            {
+              "component": "16 GB storage variant",
+              "status": "unsupported",
+              "details": "Port author reports incomplete support; do not flash the 16 GB model"
+            },
+            {
+              "component": "Other functions",
+              "status": "untested",
+              "details": "Maintainer requests further testing"
+            }
+          ],
+          "warnings": [
+            "UNSTABLE test port — user-reported bugs have not been independently validated.",
+            "16 GB model is not supported reliably. The ROM should not be installed on that variant.",
+            "v1.0 vendor and kernel images are NOT verified for the v1.1 ROM package. Do not mix release components without explicit maintainer instructions.",
+            "No trusted SHA-256 hashes are provided; files and mirrors cannot be marked verified.",
+            "Repartitioning, wiping internal storage and changing filesystems can destroy data or brick a device. Read the maintained guide, back up and verify the exact model."
+          ],
+          "credits": [
+            "@airisama1510 — port",
+            "@YesusDesign12 — vendor",
+            "@furbanoramos25 and @Andevoloper — kernel",
+            "@Eylemu / @Zerviath — optimization",
+            "@itlourzhere5352 — banner",
+            "@Batuhantrkgl — TWRP"
+          ],
+          "kernel_source": "https://github.com/Andeveloperlab/android_kernel_samsung_exynos7870_bpf"
+        }
+      ]
     }
   ]
 }
