@@ -26,8 +26,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Extract project from ForgeROM.zip
-        run: unzip -q ForgeROM.zip -d work
+      - name: Stage checked-in Android project
+        run: |
+          mkdir -p work/ForgeROM
+          git archive HEAD | tar -x -C work/ForgeROM
 
       - name: Apply custom icons (if present)
         run: |

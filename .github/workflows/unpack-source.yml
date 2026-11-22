@@ -1,0 +1,46 @@
+name: Unpack Android source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ForgeROM.zip"
+      - ".github/workflows/unpack-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    name: Extract source into main
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Extract Android project and preserve existing repository files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ForgeROM.zip || { echo "Source archive already unpacked"; exit 0; }
+          mkdir -p "$RUNNER_TEMP/forgerom-unpack"
+          unzip -q ForgeROM.zip -d "$RUNNER_TEMP/forgerom-unpack"
+          test -f "$RUNNER_TEMP/forgerom-unpack/ForgeROM/settings.gradle.kts"
+          test -f "$RUNNER_TEMP/forgerom-unpack/ForgeROM/app/build.gradle.kts"
+          # Preserve fork README and community assets; extract app/build source normally.
+          cp -a "$RUNNER_TEMP/forgerom-unpack/ForgeROM/." .
+          git show HEAD:README.md > README.md
+          rm -f ForgeROM.zip
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No source changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Unpack Android source into repository tree"
+          git push origin HEAD:main
