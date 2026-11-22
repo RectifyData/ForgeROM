@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.forgerom.app.R
 import com.forgerom.app.ai.RomArtifact
 import com.forgerom.app.ai.RomBug
+import com.forgerom.app.ai.RomExtraZip
 import com.forgerom.app.ai.RomItem
 
 /**
@@ -110,6 +111,21 @@ private fun RomFilesPane(rom: RomItem, onTrustedDownload: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+        if (rom.extraZips.isNotEmpty()) {
+            val required = rom.extraZips.filter { it.required }
+            val optional = rom.extraZips.filterNot { it.required }
+            if (required.isNotEmpty()) {
+                PaneTitle(stringResource(R.string.extra_zips_required_title))
+                Text(stringResource(R.string.extra_zips_required_explainer),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                required.forEach { zip -> ExtraZipCard(zip) }
+            }
+            if (optional.isNotEmpty()) {
+                PaneTitle(stringResource(R.string.extra_zips_optional_title))
+                optional.forEach { zip -> ExtraZipCard(zip) }
+            }
+        }
         rom.download?.let { file ->
             Card(shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
@@ -122,7 +138,7 @@ private fun RomFilesPane(rom: RomItem, onTrustedDownload: () -> Unit) {
         rom.artifacts.forEach { artifact ->
             ArtifactCard(artifact)
         }
-        if (rom.download == null && rom.artifacts.isEmpty()) {
+        if (rom.download == null && rom.artifacts.isEmpty() && rom.extraZips.isEmpty()) {
             Text(stringResource(R.string.rom_details_empty_files),
                 style = MaterialTheme.typography.bodyMedium)
         }
@@ -130,6 +146,81 @@ private fun RomFilesPane(rom: RomItem, onTrustedDownload: () -> Unit) {
             Text(stringResource(R.string.rom_details_manual_install),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Prerequisites are displayed as manual-only references, never sent to the root installer. */
+@Composable
+private fun ExtraZipCard(zip: RomExtraZip) {
+    val browser = LocalUriHandler.current
+    Card(shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor =
+            if (zip.required) MaterialTheme.colorScheme.tertiaryContainer
+            else MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(zip.label, modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(if (zip.required) R.string.extra_zips_required
+                    else R.string.extra_zips_optional),
+                    style = MaterialTheme.typography.labelMedium)
+            }
+            val typeLabel = when (zip.kind) {
+                "repartitioner" -> R.string.extra_zips_type_repartitioner
+                "recovery" -> R.string.extra_zips_type_recovery
+                "firmware" -> R.string.extra_zips_type_firmware
+                "patch" -> R.string.extra_zips_type_patch
+                "filesystem" -> R.string.extra_zips_type_filesystem
+                "encryption" -> R.string.extra_zips_type_encryption
+                "addon" -> R.string.extra_zips_type_addon
+                else -> R.string.extra_zips_type_other
+            }
+            Text(stringResource(typeLabel), style = MaterialTheme.typography.labelMedium)
+            zip.fileName?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
+            zip.version?.let {
+                Text(stringResource(R.string.rom_details_file_version, it),
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            if (zip.applicableModels.isNotEmpty()) {
+                Text(stringResource(R.string.extra_zips_models,
+                    zip.applicableModels.joinToString(", ")),
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            zip.notes?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
+            zip.sha256?.let {
+                Text(stringResource(R.string.extra_zips_published_hash, it),
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            if (zip.url == null && zip.directUrl == null) {
+                Text(stringResource(R.string.extra_zips_missing),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error)
+            }
+            zip.url?.let { link ->
+                OutlinedButton(onClick = { browser.openUri(link) }) {
+                    Text(stringResource(R.string.rom_details_page))
+                }
+            }
+            zip.directUrl?.let { link ->
+                FilledTonalButton(onClick = { browser.openUri(link) }) {
+                    Text(stringResource(R.string.rom_details_mirror))
+                }
+            }
+            zip.documentationUrl?.let { link ->
+                OutlinedButton(onClick = { browser.openUri(link) }) {
+                    Text(stringResource(R.string.extra_zips_instructions))
+                }
+            }
+            if (zip.kind == "repartitioner") {
+                Text(stringResource(R.string.extra_zips_repartition_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error)
+            }
         }
     }
 }

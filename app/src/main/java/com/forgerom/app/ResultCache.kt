@@ -8,6 +8,7 @@ import com.forgerom.app.ai.RecoveryItem
 import com.forgerom.app.ai.RomItem
 import com.forgerom.app.ai.RomArtifact
 import com.forgerom.app.ai.RomBug
+import com.forgerom.app.ai.RomExtraZip
 import com.forgerom.app.ai.RomSearchResult
 import com.forgerom.app.ai.UiText
 import org.json.JSONArray
@@ -118,6 +119,19 @@ class ResultCache(private val context: Context) {
                         .put("file", item.fileName ?: JSONObject.NULL)
                         .put("partition", item.partition ?: JSONObject.NULL)
                 }))
+                .put("extraZips", JSONArray(rom.extraZips.map { zip ->
+                    JSONObject()
+                        .put("label", zip.label).put("kind", zip.kind)
+                        .put("required", zip.required)
+                        .put("url", zip.url ?: JSONObject.NULL)
+                        .put("direct", zip.directUrl ?: JSONObject.NULL)
+                        .put("documentation", zip.documentationUrl ?: JSONObject.NULL)
+                        .put("file", zip.fileName ?: JSONObject.NULL)
+                        .put("version", zip.version ?: JSONObject.NULL)
+                        .put("notes", zip.notes ?: JSONObject.NULL)
+                        .put("sha256", zip.sha256 ?: JSONObject.NULL)
+                        .put("models", JSONArray(zip.applicableModels))
+                }))
                 .put("bugs", JSONArray(rom.bugs.map { bug ->
                     JSONObject().put("component", bug.component).put("status", bug.status)
                         .put("details", bug.details ?: JSONObject.NULL)
@@ -163,6 +177,23 @@ class ResultCache(private val context: Context) {
                             val url = v.str("url") ?: return@mapNotNull null
                             RomArtifact(label, url, v.str("direct"), v.str("version"),
                                 v.str("file"), v.str("partition"))
+                        }
+                    } ?: emptyList(),
+                    extraZips = x.optJSONArray("extraZips")?.let { rows ->
+                        (0 until rows.length()).mapNotNull { i ->
+                            val zip = rows.optJSONObject(i) ?: return@mapNotNull null
+                            val label = zip.str("label") ?: return@mapNotNull null
+                            val models = zip.optJSONArray("models")
+                            RomExtraZip(
+                                label = label, kind = zip.str("kind") ?: "other",
+                                required = zip.optBoolean("required", true),
+                                url = zip.str("url"), directUrl = zip.str("direct"),
+                                documentationUrl = zip.str("documentation"),
+                                fileName = zip.str("file"), version = zip.str("version"),
+                                notes = zip.str("notes"), sha256 = zip.str("sha256"),
+                                applicableModels = if (models == null) emptyList()
+                                    else (0 until models.length()).map { models.optString(it) }
+                            )
                         }
                     } ?: emptyList(),
                     bugs = x.optJSONArray("bugs")?.let { entries ->

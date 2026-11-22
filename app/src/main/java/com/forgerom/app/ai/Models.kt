@@ -40,6 +40,21 @@ data class RomArtifact(
     val partition: String? = null
 )
 
+/** Optional or maintainer-required ZIP. Metadata NEVER authorizes repartitioning or flashing. */
+data class RomExtraZip(
+    val label: String,
+    val kind: String,
+    val required: Boolean = true,
+    val url: String? = null,
+    val directUrl: String? = null,
+    val documentationUrl: String? = null,
+    val fileName: String? = null,
+    val version: String? = null,
+    val notes: String? = null,
+    val sha256: String? = null,
+    val applicableModels: List<String> = emptyList()
+)
+
 /** Reported by a ROM maintainer; status is not a device test result. */
 data class RomBug(val component: String, val status: String, val details: String? = null)
 
@@ -51,6 +66,7 @@ data class RomItem(
     val notes: UiText?,
     val download: DownloadInfo? = null,
     val artifacts: List<RomArtifact> = emptyList(),
+    val extraZips: List<RomExtraZip> = emptyList(),
     val bugs: List<RomBug> = emptyList(),
     val safetyNotes: List<String> = emptyList(),
     val credits: List<String> = emptyList()

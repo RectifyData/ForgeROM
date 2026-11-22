@@ -3,6 +3,7 @@ package com.forgerom.app.sources
 import android.content.Context
 import com.forgerom.app.ai.RomArtifact
 import com.forgerom.app.ai.RomBug
+import com.forgerom.app.ai.RomExtraZip
 import com.forgerom.app.ai.RomItem
 import com.forgerom.app.ai.UiText
 import com.forgerom.app.device.DeviceInfo
@@ -66,6 +67,40 @@ object CuratedRomParser {
         return out
     }
 
+    /** Extra flashable ZIPs are external references only; missing links stay visible as unresolved. */
+    private fun parseExtraZips(rows: JSONArray?, device: DeviceInfo): List<RomExtraZip> {
+        if (rows == null) return emptyList()
+        val items = ArrayList<RomExtraZip>()
+        val supportedKinds = setOf("repartitioner", "recovery", "firmware",
+            "patch", "filesystem", "encryption", "addon", "other")
+        for (index in 0 until minOf(rows.length(), 32)) {
+            val entry = rows.optJSONObject(index) ?: continue
+            val label = entry.string("label", 100) ?: continue
+            val models = entry.optJSONArray("models")
+            if (models != null && !matches(models, device.model)) continue
+            val kind = entry.string("kind", 32)?.lowercase(Locale.ROOT)
+                ?.takeIf { it in supportedKinds } ?: "other"
+            val modelNames = if (models == null) emptyList()
+                else (0 until minOf(models.length(), 40))
+                    .mapNotNull { models.optString(it).trim().take(64).ifBlank { null } }
+            val hash = entry.string("sha256", 64)
+                ?.takeIf { it.matches(Regex("[0-9a-fA-F]{64}")) }
+                ?.lowercase(Locale.ROOT)
+            items += RomExtraZip(
+                label = label, kind = kind, required = entry.optBoolean("required", true),
+                url = trustedWebLink(entry.string("url", 2048)),
+                directUrl = trustedWebLink(entry.string("direct_url", 2048)),
+                documentationUrl = trustedWebLink(entry.string("documentation_url", 2048)),
+                fileName = entry.string("file_name", 140),
+                version = entry.string("version", 40),
+                notes = entry.string("notes", 400),
+                sha256 = hash,
+                applicableModels = modelNames
+            )
+        }
+        return items.distinctBy { it.label.lowercase(Locale.ROOT) + "|" + (it.fileName ?: "") }
+    }
+
     fun parse(json: String, device: DeviceInfo): List<RomItem> {
         val root = JSONObject(json)
         if (root.optInt("schema_version") != 1) return emptyList()
@@ -106,6 +141,7 @@ object CuratedRomParser {
                     download = null,
                     artifacts = artifacts(rom.optJSONArray("packages"), false) +
                         artifacts(rom.optJSONArray("extra_images"), true),
+                    extraZips = parseExtraZips(rom.optJSONArray("extra_zips"), device),
                     bugs = bugs,
                     safetyNotes = notes("warnings"),
                     credits = notes("credits")

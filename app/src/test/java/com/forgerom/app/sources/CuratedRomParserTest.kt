@@ -30,6 +30,18 @@ class CuratedRomParserTest {
                 {"label": "Kernel", "url": "https://pixeldrain.com/u/boot",
                   "partition": "boot", "file_name": "kernel.img"}
               ],
+              "extra_zips": [
+                {"label": "Repartition before install", "kind": "repartitioner",
+                  "required": true, "notes": "No confirmed ZIP",
+                  "documentation_url": "https://xdaforums.com/t/rikka"},
+                {"label": "Optional patch", "kind": "patch",
+                  "required": false, "file_name": "patch.zip",
+                  "url": "https://example.org/patch.zip", "models": ["SM-G610F/DS"]},
+                {"label": "Wrong model ZIP", "kind": "patch",
+                  "url": "https://example.org/wrong.zip", "models": ["SM-G975F"]},
+                {"label": "Bad scheme ZIP", "kind": "repartitioner",
+                  "url": "http://example.org/bad.zip", "sha256": "bad"}
+              ],
               "bugs": [
                 {"component": "Face unlock", "status": "broken"},
                 {"component": "16 GB model", "status": "unsupported"}
@@ -51,6 +63,31 @@ class CuratedRomParserTest {
         assertTrue(rom.safetyNotes.single().contains("16 GB"))
         assertEquals("Port author", rom.credits.single())
         assertEquals(null, rom.download) // Community links are not trusted auto-downloads
+    }
+
+    @Test fun supportsMissingRequiredZipLinksAndModelSpecificExtras() {
+        val rom = CuratedRomParser.parse(fixture, j7).single()
+        assertEquals(3, rom.extraZips.size)
+        val repartitioner = rom.extraZips.first()
+        assertTrue(repartitioner.required)
+        assertEquals("repartitioner", repartitioner.kind)
+        assertEquals(null, repartitioner.url)
+        assertTrue(repartitioner.documentationUrl!!.startsWith("https://"))
+        val optional = rom.extraZips[1]
+        assertFalse(optional.required)
+        assertEquals("patch.zip", optional.fileName)
+        assertEquals(listOf("SM-G610F/DS"), optional.applicableModels)
+        val insecure = rom.extraZips[2]
+        assertEquals(null, insecure.url)
+        assertEquals(null, insecure.sha256)
+    }
+
+    @Test fun optionalZipMatchingCannotLeakAcrossDeviceVariants() {
+        val rom = CuratedRomParser.parse(fixture, j7.copy(model = "SM-G610F/DS")).single()
+        assertTrue(rom.extraZips.any { it.fileName == "patch.zip" })
+        val otherRom = CuratedRomParser.parse(fixture, j7.copy(model = "SM-G610F")).single()
+        assertTrue(otherRom.extraZips.any { it.fileName == "patch.zip" })
+        assertFalse(rom.extraZips.any { it.label == "Wrong model ZIP" })
     }
 
     @Test fun doesNotShowWrongModelOrCodename() {

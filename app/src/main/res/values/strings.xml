@@ -248,4 +248,23 @@
     <string name="rom_details_report_status_fixed">Fixed</string>
     <string name="rom_details_report_status_other">Reported</string>
     <string name="rom_details_count">%1$d reported issues</string>
+    <!-- Extra ZIP prerequisites -->
+    <string name="extra_zips_required_title">Required ZIPs &amp; prerequisites</string>
+    <string name="extra_zips_optional_title">Optional extras</string>
+    <string name="extra_zips_required_explainer">Listed by the ROM maintainer as prerequisites; availability does not establish compatibility.</string>
+    <string name="extra_zips_required">Required</string>
+    <string name="extra_zips_optional">Optional</string>
+    <string name="extra_zips_type_repartitioner">Repartitioner</string>
+    <string name="extra_zips_type_recovery">Recovery</string>
+    <string name="extra_zips_type_firmware">Firmware</string>
+    <string name="extra_zips_type_patch">Patch</string>
+    <string name="extra_zips_type_filesystem">Filesystem tool</string>
+    <string name="extra_zips_type_encryption">Encryption tool</string>
+    <string name="extra_zips_type_addon">Add-on</string>
+    <string name="extra_zips_type_other">Other ZIP</string>
+    <string name="extra_zips_models">Models: %1$s</string>
+    <string name="extra_zips_published_hash">Published SHA-256 (not independently verified): %1$s</string>
+    <string name="extra_zips_missing">No verified ZIP download provided; do not substitute an arbitrary file.</string>
+    <string name="extra_zips_instructions">Read maintainer instructions</string>
+    <string name="extra_zips_repartition_warning">Repartitioning can permanently erase data or prevent booting. Never run automatically; verify the exact device, capacity and layout first.</string>
 </resources>

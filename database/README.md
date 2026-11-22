@@ -17,6 +17,7 @@ Optional `roms` under a device supports:
 - `name`, `android_version`, `status`, `source_url`, `notes`, `models`
 - `packages`: ROM ZIPs or official release posts, with `label`, `version`, `file_name`, `url`, and optional `direct_url`
 - `extra_images`: separate boot, vendor, recovery, or other partition files. Use `partition` alongside `label`, `file_name`, `version`, `url`, and optional `direct_url`
+- `extra_zips`: separate required or optional recovery ZIPs, such as repartitioners, firmware, patches and add-ons. Each entry takes `label`, `kind`, `required` (defaults to `true`), optional `file_name`, `version`, `url`, `direct_url`, `documentation_url`, `notes`, published `sha256`, and exact `models`. A prerequisite without a confirmed download URL should **omit** `url`, but can link to its maintainer's instructions via `documentation_url`. The app shows it as **missing**, never as downloadable.
 - `bugs`: an array of `component`, `status` (`broken`, `unsupported`, `untested`, or `fixed`), and `details`
 - `warnings` and `credits`: arrays of concise strings
 
@@ -46,6 +47,13 @@ Example structure:
       "version": "v1.0",
       "url": "https://example.org/vendor"
     }],
+    "extra_zips": [{
+      "label": "Device-specific repartitioner",
+      "kind": "repartitioner",
+      "required": true,
+      "documentation_url": "https://example.org/repartition-instructions",
+      "notes": "No verified standalone ZIP available"
+    }],
     "bugs": [{"component": "Camera", "status": "broken", "details": "Reported by maintainer"}],
     "warnings": ["Back up your device and verify the exact model and release before installing"],
     "credits": ["ROM maintainer"]
@@ -58,3 +66,5 @@ The app displays these fields in the **Info | Downloads/installs | Bugs** tabs o
 ## Review rules
 
 Keep the exact ROM version alongside its kernel and vendor images. Do not imply that images from an older release work with a newer ZIP. Record unsupported storage variants and failed features explicitly. Use trusted HTTPS sources where possible; raw JSON and mirrors are not cryptographically verified. Any proposed root-based install still requires a separately verified image and device-specific recovery instructions.
+
+ZIP metadata is **display-only**. An HTTPS source link, published SHA-256, or maintainer statement is not a flashing authorization. Repartitioning tools may destroy data; never trigger installation, partition changes, or root commands from a remote catalogue entry. For dependencies that vary by model, set `models` on the individual `extra_zips` item. Show a missing link rather than inventing or substituting one.

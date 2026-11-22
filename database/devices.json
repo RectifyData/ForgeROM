@@ -269,7 +269,16 @@
             "@itlourzhere5352 — banner",
             "@Batuhantrkgl — TWRP"
           ],
-          "kernel_source": "https://github.com/Andeveloperlab/android_kernel_samsung_exynos7870_bpf"
+          "kernel_source": "https://github.com/Andeveloperlab/android_kernel_samsung_exynos7870_bpf",
+          "extra_zips": [
+            {
+              "label": "J7 Prime repartitioning prerequisite (ZIP not confirmed)",
+              "kind": "repartitioner",
+              "required": true,
+              "documentation_url": "https://xdaforums.com/t/unstable-rom-15-rikkaos-v1-0-oneui-7-for-j7-prime-port-from-s21-fe-5g.4791762/",
+              "notes": "The maintainer requires repartitioning, but no independently confirmed repartitioner ZIP download was supplied. Check the original thread and exact storage variant before proceeding. 16 GB models are not reliably supported."
+            }
+          ]
         }
       ]
     }

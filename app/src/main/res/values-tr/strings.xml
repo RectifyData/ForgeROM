@@ -211,4 +211,23 @@
     <string name="rom_details_report_status_fixed">Düzeltildi</string>
     <string name="rom_details_report_status_other">Bildirildi</string>
     <string name="rom_details_count">%1$d bildirilen sorun</string>
+    <!-- Extra ZIP prerequisites -->
+    <string name="extra_zips_required_title">Gerekli ZIP dosyaları ve ön koşullar</string>
+    <string name="extra_zips_optional_title">İsteğe bağlı ekler</string>
+    <string name="extra_zips_required_explainer">ROM geliştiricisinin ön koşul olarak belirttiği dosyalar; listelenmeleri uyumlu olduklarını kanıtlamaz.</string>
+    <string name="extra_zips_required">Gerekli</string>
+    <string name="extra_zips_optional">İsteğe bağlı</string>
+    <string name="extra_zips_type_repartitioner">Bölümleme aracı</string>
+    <string name="extra_zips_type_recovery">Kurtarma</string>
+    <string name="extra_zips_type_firmware">Firmware</string>
+    <string name="extra_zips_type_patch">Yama</string>
+    <string name="extra_zips_type_filesystem">Dosya sistemi aracı</string>
+    <string name="extra_zips_type_encryption">Şifreleme aracı</string>
+    <string name="extra_zips_type_addon">Eklenti</string>
+    <string name="extra_zips_type_other">Diğer ZIP</string>
+    <string name="extra_zips_models">Modeller: %1$s</string>
+    <string name="extra_zips_published_hash">Yayınlanan SHA-256 (bağımsız doğrulanmadı): %1$s</string>
+    <string name="extra_zips_missing">Doğrulanmış ZIP bağlantısı sağlanmadı; rastgele bir dosya kullanmayın.</string>
+    <string name="extra_zips_instructions">Geliştirici talimatlarını oku</string>
+    <string name="extra_zips_repartition_warning">Yeniden bölümleme verileri kalıcı olarak silebilir veya açılışı engelleyebilir. Otomatik çalıştırmayın; cihaz, kapasite ve bölüm düzenini doğrulayın.</string>
 </resources>
