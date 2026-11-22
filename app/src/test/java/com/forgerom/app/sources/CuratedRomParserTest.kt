@@ -93,6 +93,16 @@ class CuratedRomParserTest {
         assertTrue(rom.artifacts.first().folderAccess?.folderUrl!!.startsWith("https://"))
     }
 
+    @Test fun nullOwnerPasswordDoesNotBecomeLiteralNullString() {
+        val changed = fixture.replace(
+            "\"public_password\": \"OwnerPublishedExample\"",
+            "\"public_password\": null")
+        val rom = CuratedRomParser.parse(changed, j7).single()
+        assertEquals(null, rom.artifacts.first().folderAccess?.publicPassword)
+        assertEquals("https://gofile.io/d/ExamplePublicFolder",
+            rom.artifacts.first().folderAccess?.folderUrl)
+    }
+
     @Test fun ignoresUnsafeFolderSchemesAndInvalidAccessCodes() {
         val injected = fixture.replace(
             "https://gofile.io/d/ExamplePublicFolder",

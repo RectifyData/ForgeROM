@@ -40,7 +40,7 @@ object CuratedRomParser {
         val folder = trustedWebLink(string("folder_url", 2048)) ?: return null
         val citation = trustedWebLink(string("password_source_url", 2048))
         // A password alone is not proof of permission to share it; require the owner's public post.
-        val supplied = optString("public_password", "")
+        val supplied = if (isNull("public_password")) "" else optString("public_password", "")
         val password = supplied.takeIf { value ->
             citation != null && value.length in 1..128 && value.none { it.isISOControl() }
         }
