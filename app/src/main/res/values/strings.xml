@@ -164,4 +164,12 @@
     <string name="guide_step_6">Install the recommended recovery. Many ROMs include their own; otherwise use one of the recoveries from the results.</string>
     <string name="guide_step_7">Flash the ROM exactly as the guide says. If a SHA-256 checksum is shown, verify the downloaded file against it first.</string>
     <string name="guide_step_8">The first boot can take several minutes. If the phone does not start, stay calm: go back to recovery and follow the troubleshooting section of the guide.</string>
+    <string name="download_verified">Verified: %1$s</string>
+    <string name="download_unverified">Checksum unavailable: %1$s</string>
+    <string name="download_invalid">Download verification failed: %1$s</string>
+    <string name="download_checking">Download pending: %1$s</string>
+    <string name="update_reinstall_warning">Only install APKs matching the installed app\'s signing certificate. Check release notes before updating.</string>
+    <string name="update_install_verified">Install verified update</string>
+    <string name="update_installer_opened">Android installer opened. Confirm the update on screen.</string>
+    <string name="update_install_unavailable">Installer unavailable; verify the APK and try again.</string>
 </resources>

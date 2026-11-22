@@ -8,6 +8,8 @@ import com.forgerom.app.ai.RecoveryItem
 import com.forgerom.app.ai.RomItem
 import com.forgerom.app.ai.UiText
 import com.forgerom.app.device.DeviceInfo
+import com.forgerom.app.device.DeviceCompatibility
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -43,21 +45,19 @@ class FreeSources(private val client: OkHttpClient) {
             return@coroutineScope FreeResult(null, null, emptyList(), emptyList(), emptyList(), reachable = true)
         }
         reached = false
-        val lineage = async(Dispatchers.IO) { runCatching { lineage(code, device.model) }.getOrNull() }
-        val crdroid = async(Dispatchers.IO) { runCatching { crDroid(code) }.getOrNull() }
-        val fox = async(Dispatchers.IO) { runCatching { orangeFox(code) }.getOrNull() }
-        val twrp = async(Dispatchers.IO) { runCatching { twrp(code) }.getOrNull() }
+        val lineage = async(Dispatchers.IO) { bestEffort { lineage(code, device.model) } }
+        val crdroid = async(Dispatchers.IO) { bestEffort { crDroid(code) } }
+        val fox = async(Dispatchers.IO) { bestEffort { orangeFox(code) } }
+        val twrp = async(Dispatchers.IO) { bestEffort { twrp(code) } }
 
         val l = lineage.await()
         val c = crdroid.await()
         val f = fox.await()
         val t = twrp.await()
 
-        // LineageOS data can say "not unlockable"; otherwise any official project supporting the device is a good sign.
-        val bootloader = l?.bootloader
-            ?: if (c != null || f != null || t != null) {
-                BootloaderInfo(BootloaderStatus.UNLOCKABLE, UiText.res(R.string.bl_projects_ok))
-            } else null
+        // A ROM existing for a codename is NOT proof this exact variant is unlockable.
+        val bootloader = l?.bootloader ?: BootloaderInfo(BootloaderStatus.UNKNOWN, UiText.raw(
+            "Bootloader policy for this exact model/region has not been verified"))
 
         FreeResult(
             marketingName = l?.marketingName,
@@ -73,7 +73,7 @@ class FreeSources(private val client: OkHttpClient) {
 
     private class LineageInfo(
         val marketingName: String?,
-        val rom: RomItem,
+        val rom: RomItem?,
         val bootloader: BootloaderInfo,
         val warnings: List<UiText>
     )
@@ -94,6 +94,15 @@ class FreeSources(private val client: OkHttpClient) {
         val chosen = docs.firstOrNull { doc ->
             SourceParsers.parseList(doc.data["models"]).any { SourceParsers.normalizeModel(it) == wanted }
         } ?: docs.first()
+        val knownModels = SourceParsers.parseList(chosen.data["models"])
+        val compatible = knownModels.isEmpty() || model.isBlank() || knownModels.any {
+            SourceParsers.normalizeModel(it) == wanted
+        }
+        if (!compatible) {
+            return LineageInfo(null, null,
+                BootloaderInfo(BootloaderStatus.UNKNOWN, UiText.raw("Exact model variant not verified")),
+                listOf(UiText.raw("LineageOS lists ${knownModels.joinToString()} for $lc, not $model; build hidden for safety")))
+        }
         val d = chosen.data
         // Variant devices have their own wiki pages: /devices/<codename>/variantN/
         val wikiUrl = "https://wiki.lineageos.org/devices/$lc/" + (chosen.variant?.let { "$it/" } ?: "")
@@ -114,15 +123,16 @@ class FreeSources(private val client: OkHttpClient) {
             androidVersion = branch?.let { SourceParsers.lineageToAndroid(it) },
             status = if (discontinued) "abandoned" else "official",
             url = wikiUrl,
-            notes = UiText.res(R.string.note_lineage, title.ifBlank { code }),
+            notes = UiText.raw("Official LineageOS source for ${title.ifBlank { code }}. " +
+                DeviceCompatibility.assess(DeviceInfo("", "", model, code, "", 0, null), code, knownModels).reason),
             download = build?.let { DownloadInfo(it.url, it.fileName, it.sizeBytes, it.sha256) }
         )
 
-        val unlockable = !(d["is_unlockable"]?.equals("false", ignoreCase = true) ?: false)
-        val bootloader = if (unlockable) {
-            BootloaderInfo(BootloaderStatus.UNLOCKABLE, UiText.res(R.string.bl_lineage_ok))
-        } else {
-            BootloaderInfo(BootloaderStatus.LOCKED, UiText.res(R.string.bl_lineage_locked))
+        // An absent flag is unknown, never automatically interpreted as true.
+        val bootloader = when (d["is_unlockable"]?.lowercase()) {
+            "true" -> BootloaderInfo(BootloaderStatus.UNLOCKABLE, UiText.res(R.string.bl_lineage_ok))
+            "false" -> BootloaderInfo(BootloaderStatus.LOCKED, UiText.res(R.string.bl_lineage_locked))
+            else -> BootloaderInfo(BootloaderStatus.UNKNOWN, UiText.raw("No exact bootloader unlock policy published"))
         }
 
         val warnings = ArrayList<UiText>()
@@ -144,7 +154,8 @@ class FreeSources(private val client: OkHttpClient) {
             androidVersion = (info.latest + 4).toString(),   // crDroid N is based on Android N+4
             status = if (stale) "abandoned" else "official",
             url = "https://crdroid.net/${info.code}/${info.latest}",
-            notes = UiText.res(R.string.note_crdroid, info.lastBuild ?: "?")
+            notes = UiText.raw("Last build: ${info.lastBuild ?: "unknown"}. Codename match only; " +
+                "model variant, architecture, partition layout and firmware are not verified")
         )
     }
 
@@ -153,15 +164,35 @@ class FreeSources(private val client: OkHttpClient) {
     private fun orangeFox(code: String): RecoveryItem? {
         val body = getText("https://api.orangefox.download/devices/get?codename=$code") ?: return null
         val o = JSONObject(body)
-        val known = o.optString("codename").equals(code, ignoreCase = true) || o.has("_id") || o.has("id")
+        val matchesSingular = o.optString("codename").equals(code, ignoreCase = true)
+        val allCodes = o.optJSONArray("codenames")
+        val matchesMultiple = allCodes != null && (0 until allCodes.length()).any {
+            allCodes.optString(it).equals(code, true)
+        }
+        val known = matchesSingular || matchesMultiple
         if (!known) return null
         val fullName = if (o.isNull("full_name")) code else o.optString("full_name").ifBlank { code }
         val unsupported = o.has("supported") && !o.optBoolean("supported", true)
+        // Only advertise direct downloads if the official API supplies a trusted SHA-256.
+        // Older releases provide MD5 only: those remain website-only.
+        val releaseJson = getText("https://api.orangefox.download/releases/?codename=$code&limit=1")
+        val download = try {
+            val items = releaseJson?.let { JSONObject(it).optJSONArray("results") }
+            val latest = items?.optJSONObject(0)
+            val sha = latest?.optString("sha256").orEmpty()
+            val file = latest?.optString("file_name").orEmpty()
+            val url = latest?.optString("url").orEmpty()
+            if (sha.matches(Regex("[a-fA-F0-9]{64}")) && file.endsWith(".zip", true) &&
+                url.startsWith("https://files.orangefox.download/")) {
+                DownloadInfo(url, file, latest?.optLong("size_bytes")?.takeIf { it > 0 }, sha)
+            } else null
+        } catch (_: Exception) { null }
         return RecoveryItem(
             name = "OrangeFox Recovery",
             url = "https://orangefox.download/device/${code.lowercase()}",
-            notes = UiText.res(R.string.note_orangefox, fullName),
-            status = if (unsupported) "abandoned" else "official"
+            notes = UiText.raw("Official OrangeFox for $fullName. Exact hardware variant and installation requirements unverified"),
+            status = if (unsupported) "abandoned" else "official",
+            download = if (unsupported) null else download
         )
     }
 
@@ -171,8 +202,12 @@ class FreeSources(private val client: OkHttpClient) {
         val url = "https://dl.twrp.me/${code.lowercase()}/"
         val html = getText(url) ?: return null
         if (!html.contains("twrp-", ignoreCase = true)) return null
-        return RecoveryItem("TWRP", url, UiText.res(R.string.note_twrp), "official")
+        return RecoveryItem("TWRP", url, UiText.raw("Official TWRP page; confirm your model and flashing instructions before downloading"), "official")
     }
+
+    private inline fun <T> bestEffort(block: () -> T): T? = try { block() }
+    catch (e: CancellationException) { throw e }
+    catch (_: Exception) { null }
 
     // ───────── helper ─────────
 

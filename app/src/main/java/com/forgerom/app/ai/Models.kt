@@ -43,7 +43,8 @@ data class RecoveryItem(
     val name: String,
     val url: String,
     val notes: UiText?,
-    val status: String? = null
+    val status: String? = null,
+    val download: DownloadInfo? = null
 )
 
 data class RomSearchResult(

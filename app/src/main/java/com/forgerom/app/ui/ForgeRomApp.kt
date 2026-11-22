@@ -77,6 +77,7 @@ import com.forgerom.app.ReportBuilder
 import com.forgerom.app.Screen
 import com.forgerom.app.UiState
 import com.forgerom.app.UpdateInfo
+import com.forgerom.app.DownloadVerification
 import android.text.format.Formatter
 import com.forgerom.app.ai.BootloaderInfo
 import com.forgerom.app.ai.BootloaderStatus
@@ -111,6 +112,7 @@ class Actions(
     val onOpenGuide: () -> Unit,
     val onCloseGuide: () -> Unit,
     val onDismissUpdate: () -> Unit,
+    val onInstallVerifiedUpdate: (String) -> Unit,
     val onDismissCrash: () -> Unit,
     val onSetUpdateCheck: (Boolean) -> Unit
 )
@@ -159,7 +161,7 @@ private fun MainScreen(state: UiState, a: Actions) {
         ) {
             item { Hero(state.mode, a.onOpenSettings) }
             state.update?.let { u ->
-                item { Box(Modifier.h()) { UpdateCard(u, a.onDismissUpdate) } }
+                item { Box(Modifier.h()) { UpdateCard(u, a.onDismissUpdate, a.onDownload) } }
             }
             state.crash?.let { _ ->
                 item { Box(Modifier.h()) { CrashCard(state, a.onDismissCrash) } }
@@ -185,6 +187,27 @@ private fun MainScreen(state: UiState, a: Actions) {
                             stringResource(if (state.searching) R.string.search_button_busy else R.string.search_button),
                             style = MaterialTheme.typography.titleMedium
                         )
+                    }
+                }
+            }
+            state.downloadChecks.forEach { check ->
+                item {
+                    Box(Modifier.h()) {
+                        val (title, style) = when (check.status) {
+                            DownloadVerification.Status.VERIFIED -> R.string.download_verified to InfoStyle.POSITIVE
+                            DownloadVerification.Status.UNVERIFIED -> R.string.download_unverified to InfoStyle.ERROR
+                            DownloadVerification.Status.FAILED -> R.string.download_invalid to InfoStyle.ERROR
+                            DownloadVerification.Status.PENDING -> R.string.download_checking to InfoStyle.INFO
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            InfoCard(stringResource(title, check.filename) + " " + check.details, style)
+                            if (check.status == DownloadVerification.Status.VERIFIED &&
+                                check.filename.endsWith(".apk", true)) {
+                                Button(onClick = { a.onInstallVerifiedUpdate(check.filename) }) {
+                                    Text(stringResource(R.string.update_install_verified))
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -225,7 +248,7 @@ private fun MainScreen(state: UiState, a: Actions) {
 
                         item { Box(Modifier.h()) { SectionTitle(stringResource(R.string.section_recoveries)) } }
                         if (r.recoveries.isEmpty()) item { Box(Modifier.h()) { Text(stringResource(R.string.no_recoveries)) } }
-                        itemsIndexed(r.recoveries) { i, rec -> Box(Modifier.h()) { Appear(i) { RecoveryCard(rec) } } }
+                        itemsIndexed(r.recoveries) { i, rec -> Box(Modifier.h()) { Appear(i) { RecoveryCard(rec, a.onDownload) } } }
                     }
                 }
                 item {
@@ -442,7 +465,7 @@ private fun SearchingCard(steps: List<Int>) {
 }
 
 @Composable
-private fun UpdateCard(update: UpdateInfo, onDismiss: () -> Unit) {
+private fun UpdateCard(update: UpdateInfo, onDismiss: () -> Unit, onDownload: (DownloadInfo) -> Unit) {
     val uriHandler = LocalUriHandler.current
     Card(
         shape = CardShape,
@@ -455,7 +478,14 @@ private fun UpdateCard(update: UpdateInfo, onDismiss: () -> Unit) {
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
+            if (update.changelog.isNotBlank()) {
+                Text(update.changelog, maxLines = 6, style = MaterialTheme.typography.bodySmall)
+            }
+            Text(stringResource(R.string.update_reinstall_warning), style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                update.download?.let { file ->
+                    TextButton(onClick = { onDownload(file) }) { Text(stringResource(R.string.download_button)) }
+                }
                 TextButton(onClick = { uriHandler.openUri(update.url) }) { Text(stringResource(R.string.update_open)) }
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.update_later)) }
             }
@@ -610,7 +640,7 @@ private fun RomCard(rom: RomItem, onDownload: (DownloadInfo) -> Unit) {
 }
 
 @Composable
-private fun RecoveryCard(rec: RecoveryItem) {
+private fun RecoveryCard(rec: RecoveryItem, onDownload: (DownloadInfo) -> Unit) {
     val uriHandler = LocalUriHandler.current
     Card(
         shape = CardShape,
@@ -621,7 +651,12 @@ private fun RecoveryCard(rec: RecoveryItem) {
             Text(rec.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             rec.status?.let { StatusChip(it) }
             rec.notes?.let { Text(it.asString(), style = MaterialTheme.typography.bodyMedium) }
-            FilledTonalButton(onClick = { uriHandler.openUri(rec.url) }) { Text(stringResource(R.string.open_source)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilledTonalButton(onClick = { uriHandler.openUri(rec.url) }) { Text(stringResource(R.string.open_source)) }
+                rec.download?.let { file ->
+                    Button(onClick = { onDownload(file) }) { Text(stringResource(R.string.download_button)) }
+                }
+            }
         }
     }
 }
