@@ -172,4 +172,33 @@
     <string name="update_install_verified">Install verified update</string>
     <string name="update_installer_opened">Android installer opened. Confirm the update on screen.</string>
     <string name="update_install_unavailable">Installer unavailable; verify the APK and try again.</string>
+    <!-- Hardware-reported bootloader state; does not claim unlock eligibility. -->
+    <string name="hw_title">Bootloader hardware</string>
+    <string name="hw_unlocked">Unlocked (reported)</string>
+    <string name="hw_locked">Locked (reported)</string>
+    <string name="hw_unknown">Lock state unknown</string>
+    <string name="hw_support_yes">OEM unlock capability reported</string>
+    <string name="hw_support_no">OEM unlock capability not reported</string>
+    <string name="hw_support_unknown">OEM unlock capability unknown</string>
+    <string name="hw_refresh">Refresh hardware status</string>
+    <string name="hw_developer_options">Open Developer Options</string>
+    <string name="hw_caution">Carrier permission and the OEM unlocking switch cannot be verified by this app. Do not confuse bootloader state with permission to unlock.</string>
+    <string name="hw_source">Source: %1$s</string>
+    <string name="hw_bootstate">Verified boot: %1$s</string>
+    <string name="menu_actions">Quick actions</string>
+    <string name="menu_installer">ROM installer</string>
+    <string name="menu_downloads">Downloads</string>
+    <string name="menu_hardware">Hardware status</string>
+    <string name="install_title">Recovery ROM installer</string>
+    <string name="install_description">Root-only recovery handoff for verified, legacy flashable ZIPs. Requires compatible TWRP or OrangeFox recovery, readable storage, and an official ROM guide. It does not flash system partitions while Android is running.</string>
+    <string name="install_choose">Choose a ROM ZIP</string>
+    <string name="install_checksum">Published SHA-256 checksum (required)</string>
+    <string name="install_recovery_warning">I have a compatible TWRP/OpenRecoveryScript recovery installed, I backed up my data, and I checked the official guide for my exact model.</string>
+    <string name="install_begin">Verify, queue and reboot to recovery</string>
+    <string name="install_progress">Preparing ROM: %1$d%%</string>
+    <string name="install_no_file">Select a ZIP file first.</string>
+    <string name="install_no_root">Superuser access is required for recovery handoff. Without root, ForgeROM only downloads files.</string>
+    <string name="install_result">Installer: %1$s</string>
+    <string name="install_confirm_title">Queue recovery installation?</string>
+    <string name="install_confirm_body">This will verify the ZIP, copy it to Downloads, queue a recovery script and reboot into recovery. Installation may erase data or make the device unbootable if the recovery or ROM is incompatible. ForgeROM cannot verify your recovery implementation.</string>
 </resources>

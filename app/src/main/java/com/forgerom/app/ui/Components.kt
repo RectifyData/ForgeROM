@@ -55,7 +55,7 @@ import com.forgerom.app.ReportBuilder
 import com.forgerom.app.UiState
 import kotlinx.coroutines.delay
 
-internal val CardShape = RoundedCornerShape(24.dp)
+internal val CardShape = RoundedCornerShape(28.dp)
 internal val HeroBrush = Brush.linearGradient(listOf(Color(0xFF0066FF), Color(0xFF0040B8)))
 
 internal fun Modifier.h() = padding(horizontal = 16.dp)
