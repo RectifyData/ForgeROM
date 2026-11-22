@@ -2,6 +2,7 @@ package com.forgerom.app
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -67,7 +68,11 @@ data class UiState(
     val catalogStatus: String = "Checking GitHub phone database…",
     val catalogRefreshing: Boolean = false,
     val hardware: HardwareBootloader.Report? = null,
-    val hardwareRefreshing: Boolean = false
+    val hardwareRefreshing: Boolean = false,
+    val installerPreparing: Boolean = false,
+    val installerReady: Boolean = false,
+    val installerLocation: String = "",
+    val installerMessage: String = ""
 ) {
     /** The device used for searching: the manual selection if any, otherwise the detected one. */
     val activeDevice: DeviceInfo?
@@ -115,6 +120,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private var searchJob: Job? = null
     private var aiJob: Job? = null
     private var searchEpoch = 0
+    private var rootRequestEpoch = 0
 
     private fun invalidateSearch() {
         searchEpoch++
@@ -147,6 +153,53 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: Exception) {
                 _state.update { it.copy(catalogRefreshing = false,
                     catalogStatus = "Offline — using cached catalogue") }
+            }
+        }
+    }
+
+    /** Recovery handoff: no automatic flashing, only a verified file in Downloads. */
+    fun prepareRecoveryZip(uri: Uri, sha256: String) {
+        val current = _state.value
+        if (current.mode != AppMode.ROOT || !current.rootGranted || current.manual != null) {
+            _state.update { it.copy(installerMessage =
+                "Root mode and the physically detected device are required.") }
+            return
+        }
+        _state.update { it.copy(installerPreparing = true, installerReady = false,
+            installerMessage = "Copying ZIP and verifying SHA-256…") }
+        viewModelScope.launch {
+            val prepared = RecoveryInstaller.prepare(getApplication(), uri, sha256)
+            _state.update {
+                if (prepared.isSuccess) {
+                    val success = prepared.getOrThrow()
+                    it.copy(installerPreparing = false, installerReady = true,
+                        installerLocation = success.location,
+                        installerMessage = "Verified SHA-256. Ready in " + success.location +
+                            ". Choose Install ZIP manually in your compatible recovery.")
+                } else {
+                    it.copy(installerPreparing = false, installerReady = false,
+                        installerLocation = "",
+                        installerMessage = prepared.exceptionOrNull()?.message ?: "ZIP preparation failed")
+                }
+            }
+        }
+    }
+
+    fun rebootRecovery() {
+        val current = _state.value
+        if (!current.rootGranted || current.mode != AppMode.ROOT ||
+            !current.installerReady || current.manual != null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!RootManager.requestRoot()) {
+                    _state.update { it.copy(installerMessage = "Root permission was denied.") }
+                    return@launch
+                }
+                // Opens recovery; the user installs the ZIP there manually.
+                ProcessBuilder("su", "-c", "reboot recovery").start()
+            } catch (e: Exception) {
+                _state.update { it.copy(installerMessage = "Could not open recovery: " +
+                    (e.message ?: e.javaClass.simpleName)) }
             }
         }
     }
@@ -199,21 +252,25 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun recheckRoot() = applyMode(AppMode.ROOT)
 
     private fun applyMode(mode: AppMode, onDone: () -> Unit = {}) {
+        val request = ++rootRequestEpoch
         if (mode == AppMode.SUGGEST) {
             prefs.edit().putString("mode", "suggest").apply()
-            _state.update { it.copy(mode = AppMode.SUGGEST, rootGranted = false) }
+            _state.update { it.copy(mode = AppMode.SUGGEST, rootGranted = false,
+                rootChecking = false, installerReady = false) }
             onDone()
             return
         }
         _state.update { it.copy(rootChecking = true) }
         viewModelScope.launch {
             val granted = RootManager.requestRoot()
+            if (request != rootRequestEpoch) return@launch
             prefs.edit().putString("mode", if (granted) "root" else "suggest").apply()
             _state.update {
                 it.copy(
                     mode = if (granted) AppMode.ROOT else AppMode.SUGGEST,
                     rootGranted = granted,
                     rootChecking = false,
+                    installerReady = if (granted) it.installerReady else false,
                     notice = Notice(if (granted) R.string.root_granted else R.string.root_denied, granted)
                 )
             }

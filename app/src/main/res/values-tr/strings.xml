@@ -178,4 +178,15 @@
     <string name="device_database_refresh">Veritabanını yenile</string>
     <string name="device_database_warning">Veritabanı kayıtları ROM veya önyükleyici uyumluluğunu kanıtlamaz.</string>
     <string name="settings_desc">Görünüm, cihaz modu ve tercihler</string>
+    <string name="tab_install">Kurulum</string>
+    <string name="installer_title">Recovery destekli ROM kurulumu</string>
+    <string name="installer_subtitle">Root ile hazırlık — recovery üzerinden manuel kurulum</string>
+    <string name="installer_body">Dosyanın SHA-256 doğrulaması yapılır ve İndirilenler/ForgeROM klasörüne kopyalanır. Cihaz uyumluluğunu ve recovery desteğini ayrıca kontrol edin.</string>
+    <string name="installer_hash">Resmî SHA-256 değeri</string>
+    <string name="installer_check">Cihaz uyumluluğunu kontrol ettim, çalışan recovery ve yedeğim var.</string>
+    <string name="installer_pick">ROM ZIP seç ve doğrula</string>
+    <string name="installer_reboot">Recovery moduna yeniden başlat</string>
+    <string name="installer_reboot_info">Recovery açıldığında İndirilenler/ForgeROM içinden ZIP dosyasını manuel seçin.</string>
+    <string name="installer_need_detected">Kurulum için fiziksel cihazı seçin.</string>
+    <string name="installer_status">Durum</string>
 </resources>

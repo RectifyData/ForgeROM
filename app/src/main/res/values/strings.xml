@@ -215,4 +215,15 @@
     <string name="device_database_refresh">Refresh database</string>
     <string name="device_database_warning">Database entries only identify devices. They are not proof of ROM or bootloader compatibility.</string>
     <string name="settings_desc">Appearance, device mode and preferences</string>
+    <string name="tab_install">Install</string>
+    <string name="installer_title">Recovery-assisted ROM installer</string>
+    <string name="installer_subtitle">Root-only guided preparation — manual installation in recovery</string>
+    <string name="installer_body">This tool checks the published SHA-256 and stages the ZIP in Downloads/ForgeROM. It cannot certify ROM compatibility. TWRP or OrangeFox must support the specific package. No partitions are written in Android.</string>
+    <string name="installer_hash">Official SHA-256 checksum</string>
+    <string name="installer_check">I checked compatibility for my exact device, have a working custom recovery, and backed up my data.</string>
+    <string name="installer_pick">Select and verify ROM ZIP</string>
+    <string name="installer_reboot">Reboot into recovery</string>
+    <string name="installer_reboot_info">After reboot, select Install in your custom recovery and navigate to Downloads/ForgeROM. This action does not automatically flash the ZIP.</string>
+    <string name="installer_need_detected">Select the physically detected phone before using the installer.</string>
+    <string name="installer_status">Status</string>
 </resources>

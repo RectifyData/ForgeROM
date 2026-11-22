@@ -79,6 +79,7 @@ import com.forgerom.app.UiState
 import com.forgerom.app.UpdateInfo
 import com.forgerom.app.DownloadVerification
 import android.text.format.Formatter
+import android.net.Uri
 import com.forgerom.app.ai.BootloaderInfo
 import com.forgerom.app.ai.BootloaderStatus
 import com.forgerom.app.ai.DownloadInfo
@@ -117,7 +118,9 @@ class Actions(
     val onSetUpdateCheck: (Boolean) -> Unit,
     val onRefreshCatalog: () -> Unit,
     val onRefreshHardware: () -> Unit,
-    val onVerifyDownloads: () -> Unit
+    val onVerifyDownloads: () -> Unit,
+    val onPrepareRecoveryZip: (Uri, String) -> Unit,
+    val onRebootRecovery: () -> Unit
 )
 
 private const val CONSOLE_URL = "https://console.anthropic.com/settings/keys"
