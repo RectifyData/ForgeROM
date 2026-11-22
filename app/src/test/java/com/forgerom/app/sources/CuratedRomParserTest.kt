@@ -93,6 +93,24 @@ class CuratedRomParserTest {
         assertTrue(rom.artifacts.first().folderAccess?.folderUrl!!.startsWith("https://"))
     }
 
+    @Test fun gofileFolderWithoutASeparateDownloadPageIsShown() {
+        val changed = fixture.replace(
+            "\"label\": \"ROM\", \"url\": \"https://pixeldrain.com/u/rom\",",
+            "\"label\": \"ROM\",")
+        val rom = CuratedRomParser.parse(changed, j7).single()
+        assertEquals("https://gofile.io/d/ExamplePublicFolder", rom.artifacts.first().url)
+        assertEquals(1, rom.artifacts.count { it.folderAccess != null })
+        assertEquals(null, rom.download)
+    }
+
+    @Test fun blankPasswordIsNotDisplayed() {
+        val changed = fixture.replace(
+            "\"public_password\": \"OwnerPublishedExample\"",
+            "\"public_password\": \" \"")
+        val rom = CuratedRomParser.parse(changed, j7).single()
+        assertEquals(null, rom.artifacts.first().folderAccess?.publicPassword)
+    }
+
     @Test fun nullOwnerPasswordDoesNotBecomeLiteralNullString() {
         val changed = fixture.replace(
             "\"public_password\": \"OwnerPublishedExample\"",

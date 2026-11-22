@@ -42,7 +42,7 @@ object CuratedRomParser {
         // A password alone is not proof of permission to share it; require the owner's public post.
         val supplied = if (isNull("public_password")) "" else optString("public_password", "")
         val password = supplied.takeIf { value ->
-            citation != null && value.length in 1..128 && value.none { it.isISOControl() }
+            citation != null && value.length in 1..128 && value.isNotBlank() && value.none { it.isISOControl() }
         }
         return PublicFolderAccess(folderUrl = folder, publicPassword = password,
             passwordSourceUrl = if (password == null) null else citation)
