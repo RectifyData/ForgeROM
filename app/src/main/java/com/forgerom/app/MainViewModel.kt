@@ -18,6 +18,7 @@ import com.forgerom.app.device.DeviceCatalog
 import com.forgerom.app.device.DeviceInfo
 import com.forgerom.app.sources.FreeSources
 import com.forgerom.app.sources.SourceParsers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,7 +38,7 @@ enum class AppMode { SUGGEST, ROOT }
 
 data class UiError(@StringRes val res: Int, val detail: String = "")
 data class Notice(@StringRes val res: Int, val positive: Boolean)
-data class UpdateInfo(val tag: String, val url: String)
+data class UpdateInfo(val tag: String, val url: String, val changelog: String = "", val download: DownloadInfo? = null)
 
 data class UiState(
     val screen: Screen = Screen.MAIN,
@@ -56,6 +57,7 @@ data class UiState(
     val cachedAt: Long? = null,                // set while the shown result comes from the cache
     val update: UpdateInfo? = null,            // a newer ForgeROM release exists
     val updateCheckEnabled: Boolean = true,
+    val downloadChecks: List<DownloadVerification> = emptyList(),
     val crash: String? = null,                 // summary of a crash from the previous run
     val error: UiError? = null,
     val pickerQuery: String = "",
@@ -105,6 +107,23 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     private val finder = RomFinder(client)
     private var pickerJob: Job? = null
+    private var searchJob: Job? = null
+    private var aiJob: Job? = null
+    private var searchEpoch = 0
+
+    private fun invalidateSearch() {
+        searchEpoch++
+        searchJob?.cancel()
+        aiJob?.cancel()
+        _state.update { it.copy(searching = false, aiSearching = false) }
+    }
+
+    fun verifyDownloads() {
+        viewModelScope.launch {
+            val results = DownloadVerifier.scan(getApplication())
+            _state.update { it.copy(downloadChecks = results) }
+        }
+    }
 
     private val _state = MutableStateFlow(
         UiState(
@@ -122,6 +141,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         loadCached()
         showKnownUpdate()
         checkForUpdate()
+        verifyDownloads()
         viewModelScope.launch {
             val entry = catalog.resolve(device)
             _state.update { it.copy(detectedName = entry?.name, resolvingName = false) }
@@ -232,8 +252,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!_state.value.updateCheckEnabled) return
         val tag = prefs.getString("update_tag", null) ?: return
         val url = prefs.getString("update_url", null) ?: return
+        val change = prefs.getString("update_changelog", "").orEmpty()
+        val urlApk = prefs.getString("update_apk", null)
+        val sha = prefs.getString("update_sha", null)
+        val file = prefs.getString("update_filename", null)
+        val download = if (urlApk != null && sha != null && file != null)
+            DownloadInfo(urlApk, file, prefs.getLong("update_size", -1).takeIf { it > 0 }, sha)
+            else null
         if (SourceParsers.isNewer(tag, appVersion) && prefs.getString("dismissed_update", null) != tag) {
-            _state.update { it.copy(update = UpdateInfo(tag, url)) }
+            _state.update { it.copy(update = UpdateInfo(tag, url, change, download)) }
         }
     }
 
@@ -251,6 +278,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 .putLong("last_update_check", now)
                 .putString("update_tag", latest.tag)
                 .putString("update_url", latest.url)
+                .putString("update_changelog", latest.changelog)
+                .putString("update_apk", latest.download?.url)
+                .putString("update_sha", latest.download?.sha256)
+                .putString("update_filename", latest.download?.fileName)
+                .putLong("update_size", latest.download?.sizeBytes ?: -1)
                 .apply()
             showKnownUpdate()
         }
@@ -259,10 +291,18 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // ---- Download (direct file links only; ForgeROM never installs anything) ----
 
     fun download(file: DownloadInfo) {
-        val ok = Downloader.start(getApplication(), file.url, file.fileName)
+        val ok = Downloader.start(getApplication(), file)
+        if (ok) verifyDownloads()
         _state.update {
             it.copy(notice = Notice(if (ok) R.string.download_started else R.string.download_failed, ok))
         }
+    }
+
+    /** Only opens Android's visible installer UI after the downloaded APK is hash- and signer-verified. */
+    fun installVerifiedUpdate(fileName: String) {
+        val ok = VerifiedUpdateInstaller.install(getApplication(), fileName)
+        _state.update { it.copy(notice = Notice(if (ok) R.string.update_installer_opened
+            else R.string.update_install_unavailable, ok)) }
     }
 
     // ---- Manual device selection ----
@@ -281,11 +321,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun selectManual(entry: CatalogEntry) {
+        invalidateSearch()
         _state.update { it.copy(manual = entry, screen = Screen.MAIN, result = null, cachedAt = null, error = null) }
         loadCached()
     }
 
     fun useDetected() {
+        invalidateSearch()
         _state.update { it.copy(manual = null, result = null, cachedAt = null, error = null) }
         loadCached()
     }
@@ -308,59 +350,41 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- Search ----
 
-    /** Free search: LineageOS, crDroid, OrangeFox and TWRP by codename. No API key needed. Always goes online. */
+    /** Search only uses authoritative provider data; a codename match is not a flashing guarantee. */
     fun search() {
-        val s = _state.value
-        val device = s.activeDevice ?: return
-
-        // A local rule (future ready-made database) says locked: nothing to search.
-        BootloaderPolicy.check(device)?.let { bl ->
-            if (bl.status == BootloaderStatus.LOCKED) {
-                _state.update {
-                    it.copy(
-                        error = null,
-                        cachedAt = null,
-                        result = RomSearchResult(null, bl, emptyList(), emptyList(), emptyList())
-                    )
-                }
-                return
-            }
-        }
-
-        // The current (possibly saved) result stays visible while searching.
+        val device = _state.value.activeDevice ?: return
+        invalidateSearch()
+        val epoch = searchEpoch
+        val key = cacheKey(device)
         _state.update { it.copy(searching = true, error = null) }
-        viewModelScope.launch {
+        searchJob = viewModelScope.launch {
             try {
                 val free = freeSources.search(device)
+                if (epoch != searchEpoch || _state.value.activeDevice?.let(::cacheKey) != key) return@launch
                 if (!free.reachable) {
-                    // Offline: keep whatever is shown (e.g. saved results) and explain.
                     _state.update { it.copy(searching = false, error = UiError(R.string.err_network)) }
                     return@launch
                 }
-                val bl = free.bootloader ?: BootloaderInfo(BootloaderStatus.UNKNOWN, UiText.res(R.string.bl_unknown_free))
-                val locked = bl.status == BootloaderStatus.LOCKED
+                val bootloader = free.bootloader ?: BootloaderInfo(BootloaderStatus.UNKNOWN,
+                    UiText.raw("No verified bootloader policy for this exact model/region"))
                 val result = RomSearchResult(
                     marketingName = free.marketingName,
-                    bootloader = bl,
-                    roms = if (locked) emptyList() else free.roms,
-                    recoveries = if (locked) emptyList() else free.recoveries,
-                    warnings = free.warnings
+                    bootloader = bootloader,
+                    roms = free.roms, recoveries = free.recoveries,
+                    warnings = free.warnings + UiText.raw(
+                        "Availability is not installation compatibility. Verify firmware, ABI and partitions in the official instructions")
                 )
-                if (result.roms.isNotEmpty() || result.recoveries.isNotEmpty() || bl.status != BootloaderStatus.UNKNOWN) {
-                    withContext(Dispatchers.IO) { cache.put(cacheKey(device), result, System.currentTimeMillis()) }
+                if (result.roms.isNotEmpty() || result.recoveries.isNotEmpty()) {
+                    withContext(Dispatchers.IO) { cache.put(key, result, System.currentTimeMillis()) }
                 }
-                _state.update {
-                    it.copy(
-                        searching = false,
-                        result = result,
-                        cachedAt = null,   // fresh results: the "saved results" note disappears
-                        detectedName = if (it.manual == null) it.detectedName ?: free.marketingName else it.detectedName
-                    )
-                }
+                if (epoch != searchEpoch || _state.value.activeDevice?.let(::cacheKey) != key) return@launch
+                _state.update { it.copy(searching = false, result = result, cachedAt = null,
+                    detectedName = if (it.manual == null) it.detectedName ?: free.marketingName else it.detectedName) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(searching = false, error = UiError(R.string.err_generic, e.message ?: e.javaClass.simpleName))
-                }
+                if (epoch == searchEpoch) _state.update { it.copy(searching = false,
+                    error = UiError(R.string.err_generic, e.message ?: e.javaClass.simpleName)) }
             }
         }
     }
@@ -370,58 +394,59 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
      * [language] is the English name of the UI language (e.g. "Turkish"); the AI writes its notes in it.
      */
     fun searchAi(language: String) {
-        val s = _state.value
-        val device = s.activeDevice ?: return
-        if (s.apiKey.isBlank()) {
+        val state = _state.value
+        val device = state.activeDevice ?: return
+        if (state.apiKey.isBlank()) {
             _state.update { it.copy(error = UiError(R.string.err_no_api_key)) }
             return
         }
+        aiJob?.cancel()
+        val epoch = searchEpoch
+        val key = cacheKey(device)
         _state.update { it.copy(aiSearching = true, error = null) }
-        viewModelScope.launch {
+        aiJob = viewModelScope.launch {
             try {
-                val ai = finder.find(s.apiKey, device, s.activeName, language)
+                val ai = finder.find(state.apiKey, device, state.activeName, language)
+                if (epoch != searchEpoch || _state.value.activeDevice?.let(::cacheKey) != key) return@launch
                 val current = _state.value
                 val merged = merge(current.result, ai)
-                // Keep the original save date if the free part came from the cache, so old data is not "refreshed" by accident.
                 val savedAt = current.cachedAt ?: System.currentTimeMillis()
-                withContext(Dispatchers.IO) { cache.put(cacheKey(device), merged, savedAt) }
-                _state.update {
-                    it.copy(
-                        aiSearching = false,
-                        result = merged,
-                        detectedName = if (it.manual == null) it.detectedName ?: ai.marketingName else it.detectedName
-                    )
-                }
+                withContext(Dispatchers.IO) { cache.put(key, merged, savedAt) }
+                if (epoch != searchEpoch || _state.value.activeDevice?.let(::cacheKey) != key) return@launch
+                _state.update { it.copy(aiSearching = false, result = merged,
+                    detectedName = if (it.manual == null) it.detectedName ?: ai.marketingName else it.detectedName) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: UserFacingException) {
-                _state.update { it.copy(aiSearching = false, error = UiError(e.res, e.detail)) }
+                if (epoch == searchEpoch) _state.update { it.copy(aiSearching = false, error = UiError(e.res, e.detail)) }
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(aiSearching = false, error = UiError(R.string.err_generic, e.message ?: e.javaClass.simpleName))
-                }
+                if (epoch == searchEpoch) _state.update { it.copy(aiSearching = false,
+                    error = UiError(R.string.err_generic, e.message ?: e.javaClass.simpleName)) }
             }
         }
     }
 
-    /** Free results first, then AI-only extras. A "locked" verdict from either side wins. */
+    /** AI guesses never override authoritative provider results or assert that a bootloader is locked. */
     private fun merge(free: RomSearchResult?, ai: RomSearchResult): RomSearchResult {
-        if (free == null) return ai
-        val bl = when {
-            free.bootloader.status == BootloaderStatus.LOCKED -> free.bootloader
-            ai.bootloader.status == BootloaderStatus.LOCKED -> ai.bootloader
-            free.bootloader.status == BootloaderStatus.UNKNOWN -> ai.bootloader
-            else -> free.bootloader
+        val confirmed = free ?: RomSearchResult(null,
+            BootloaderInfo(BootloaderStatus.UNKNOWN, UiText.raw("AI unlock claims are not verified")),
+            emptyList(), emptyList(), emptyList())
+        val existingRoms = confirmed.roms.map { it.url }.toSet()
+        val existingRecoveries = confirmed.recoveries.map { it.url }.toSet()
+        val extraRoms = ai.roms.filter { it.url !in existingRoms }.map {
+            it.copy(status = "unofficial", notes = UiText.raw(
+                "AI suggestion — not confirmed compatible. Verify device model and source before use. " +
+                (it.notes?.raw ?: "")), download = null)
         }
-        if (bl.status == BootloaderStatus.LOCKED) {
-            return RomSearchResult(free.marketingName ?: ai.marketingName, bl, emptyList(), emptyList(), free.warnings)
+        val extraRecoveries = ai.recoveries.filter { it.url !in existingRecoveries }.map {
+            it.copy(status = "unofficial", notes = UiText.raw("AI suggestion — unverified. " + (it.notes?.raw ?: "")))
         }
-        val romUrls = free.roms.map { it.url }.toSet()
-        val recUrls = free.recoveries.map { it.url }.toSet()
         return RomSearchResult(
-            marketingName = free.marketingName ?: ai.marketingName,
-            bootloader = bl,
-            roms = free.roms + ai.roms.filter { it.url !in romUrls },
-            recoveries = free.recoveries + ai.recoveries.filter { it.url !in recUrls },
-            warnings = free.warnings + ai.warnings
+            marketingName = confirmed.marketingName ?: ai.marketingName,
+            bootloader = confirmed.bootloader,
+            roms = confirmed.roms + extraRoms,
+            recoveries = confirmed.recoveries + extraRecoveries,
+            warnings = confirmed.warnings + ai.warnings + UiText.raw("AI search results have not been independently validated")
         )
     }
 }

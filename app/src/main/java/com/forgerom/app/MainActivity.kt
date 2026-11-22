@@ -7,6 +7,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.forgerom.app.ui.Actions
@@ -23,6 +27,14 @@ class MainActivity : AppCompatActivity() {
             ForgeRomTheme {
                 val vm: MainViewModel = viewModel()
                 val state by vm.state.collectAsStateWithLifecycle()
+                val owner = LocalLifecycleOwner.current
+                DisposableEffect(owner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) vm.verifyDownloads()
+                    }
+                    owner.lifecycle.addObserver(observer)
+                    onDispose { owner.lifecycle.removeObserver(observer) }
+                }
                 ForgeRomApp(
                     state = state,
                     a = Actions(
@@ -45,6 +57,7 @@ class MainActivity : AppCompatActivity() {
                         onOpenGuide = vm::openGuide,
                         onCloseGuide = vm::closeGuide,
                         onDismissUpdate = vm::dismissUpdate,
+                        onInstallVerifiedUpdate = vm::installVerifiedUpdate,
                         onDismissCrash = vm::dismissCrash,
                         onSetUpdateCheck = vm::setUpdateCheck
                     )

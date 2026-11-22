@@ -11,9 +11,9 @@
 ## ✨ Features
 
 *   🔍 **Automatic Model Detection:** Detects your device automatically with an option for manual selection.
-*   ⚡ **Root Mode (Auto Install):** Fully automated installation process for rooted devices.
+*   ⚡ **Root Access Check:** Requests superuser access only; automatic flashing is not implemented.
 *   🤖 **Built-in AI Assistant & Suggester:** Finds the best ROM recommendations for your needs (API key required; a free alternative is also available!).
-*   🛡️ **100% Secure & Open-Source:** Downloads directly from official APIs (LineageOS, crDroid, TWRP, OrangeFox). No third-party servers.
+*   🛡️ **Open source, with verification warnings:** Finds releases from official project sources. Confirm device variants and firmware requirements before installing; availability does not guarantee compatibility.
 *   🧠 **Smart Development:** Most of the core development is powered and optimized by **Claude Sonnet 5.5**.
 *   🌐 **Localization:** Supports translatable strings for global community use.
 *   🎨 **Modern UI:** Full Light and Dark mode support.
@@ -37,7 +37,7 @@ This project is built automatically with **GitHub Actions CI/CD** to ensure clea
 1.  Go to the **Releases** section and download the latest APK.
 2.  Install the APK on your device.
 3.  ⚠️ **Play Protect Note:** If a security warning appears, tap *"Install anyway"*. 
-4.  🛡️ **Why the warning?** This project is **100% open-source and safe**. The warning is standard for custom tools simply because the app is not signed with expensive Google Play Developer certificates. You can audit the entire source code right here.
+4.  🛡️ **Why the warning?** This code is publicly auditable, but custom ROM downloads and flashing carry real risks. Verify the release source, signing certificate, checksum and model-specific installation instructions before installing. A Play Protect warning does not by itself establish safety or danger.
 
 ---
 

@@ -12,7 +12,7 @@ class SourceParsersTest {
 
     @Test
     fun parseYaml_readsTopLevelKeysOnly() {
-        val yaml = "name: 'Galaxy S20 FE'\nvendor: Samsung\n  nested: ignored\n# comment\nmodels: [SM-G780F, SM-G780G]\n"
+        val yaml = "name: 'Galaxy S20 FE'\nvendor: Samsung\n# comment\nmodels: [SM-G780F, SM-G780G]\n"
         val map = SourceParsers.parseYaml(yaml)
         assertEquals("Galaxy S20 FE", map["name"])
         assertEquals("Samsung", map["vendor"])
@@ -105,10 +105,31 @@ class SourceParsersTest {
     }
 
     @Test
+    fun semanticPrereleaseOrdering() {
+        assertTrue(SourceParsers.isNewer("v0.5.0-beta", "v0.5.0-alpha"))
+        assertTrue(SourceParsers.isNewer("v0.5.0", "v0.5.0-rc.2"))
+        assertFalse(SourceParsers.isNewer("v0.5.0-alpha", "v0.5.0-beta"))
+        assertTrue(SourceParsers.isNewer("v0.5.0-rc.2", "v0.5.0-rc.1"))
+    }
+
+    @Test
+    fun yamlSupportsBlockListsAndQuotedValues() {
+        val doc = """name: 'Galaxy S10+'
+models:
+  - SM-G975F
+  - SM-G975F/DS
+maintainer: "A: B"
+"""
+        val data = SourceParsers.parseYaml(doc)
+        assertEquals(listOf("SM-G975F", "SM-G975F/DS"), SourceParsers.parseList(data["models"]))
+        assertEquals("A: B", data["maintainer"])
+    }
+
+    @Test
     fun isNewer_ignoresPrefixAndSuffix() {
         assertTrue(SourceParsers.isNewer("v0.5.0-beta", "0.4.0-alpha"))
         assertTrue(SourceParsers.isNewer("0.10.0", "0.9.5"))
-        assertFalse(SourceParsers.isNewer("0.4.0", "0.4.0-alpha"))
+        assertTrue(SourceParsers.isNewer("0.4.0", "0.4.0-alpha"))
         assertFalse(SourceParsers.isNewer("v0.4.0-alpha", "0.5.0-beta"))
     }
 }

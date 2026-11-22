@@ -156,4 +156,12 @@
     <string name="guide_step_6">Önerilen recovery\'yi kur. Birçok ROM kendi recovery\'sini içerir, yoksa sonuçlardaki recovery\'lerden birini kullan.</string>
     <string name="guide_step_7">ROM\'u rehberde yazdığı gibi kur. SHA-256 sağlama toplamı gösteriliyorsa önce indirdiğin dosyayı onunla doğrula.</string>
     <string name="guide_step_8">İlk açılış birkaç dakika sürebilir. Telefon açılmazsa sakin ol: recovery\'ye dön ve rehberin sorun giderme bölümünü izle.</string>
+    <string name="download_verified">Doğrulandı: %1$s</string>
+    <string name="download_unverified">Sağlama toplamı yok: %1$s</string>
+    <string name="download_invalid">İndirme doğrulaması başarısız: %1$s</string>
+    <string name="download_checking">İndirme bekleniyor: %1$s</string>
+    <string name="update_reinstall_warning">Yalnızca mevcut uygulamanın imza sertifikasıyla eşleşen APK dosyalarını yükleyin.</string>
+    <string name="update_install_verified">Doğrulanmış güncellemeyi yükle</string>
+    <string name="update_installer_opened">Android yükleyici açıldı. Güncellemeyi ekranda onaylayın.</string>
+    <string name="update_install_unavailable">Yükleyici kullanılamıyor; APK dosyasını doğrulayın.</string>
 </resources>

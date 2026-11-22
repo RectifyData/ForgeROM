@@ -1,34 +1,45 @@
 package com.forgerom.app.sources
 
 import org.json.JSONObject
+import org.jsoup.Jsoup
+import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.LoaderOptions
+import org.yaml.snakeyaml.constructor.SafeConstructor
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 /** Pure parsing helpers (no Android classes), so they can be unit tested on a normal JVM. */
 object SourceParsers {
 
-    /** Reads only the top-level `key: value` lines of the LineageOS wiki YAML. */
+    /** Safely parse the vendor-maintained device YAML (including block/flow lists). */
     fun parseYaml(text: String): Map<String, String> {
-        val map = HashMap<String, String>()
-        for (line in text.lineSequence()) {
-            if (line.isBlank() || line[0] == ' ' || line[0] == '-' || line[0] == '#') continue
-            val i = line.indexOf(':')
-            if (i <= 0) continue
-            map[line.substring(0, i).trim()] = line.substring(i + 1).trim().trim('\'', '"')
-        }
-        return map
+        val source = Yaml(SafeConstructor(LoaderOptions())).load<Any?>(text) as? Map<*, *> ?: return emptyMap()
+        return source.entries.mapNotNull { (key, value) ->
+            val name = key as? String ?: return@mapNotNull null
+            val scalar = when (value) {
+                is List<*> -> value.joinToString(prefix = "[", postfix = "]") { it?.toString().orEmpty() }
+                is String, is Number, is Boolean -> value.toString()
+                else -> return@mapNotNull null
+            }
+            name to scalar
+        }.toMap()
     }
 
-    /** "[a, 'b']" -> ["a", "b"] */
+    /** Splits YAML flow lists, as returned by parseYaml, without mistaking quoted commas. */
     fun parseList(value: String?): List<String> {
-        if (value == null) return emptyList()
-        return value.trim().removePrefix("[").removeSuffix("]")
-            .split(',')
-            .map { it.trim().trim('\'', '"') }
-            .filter { it.isNotEmpty() && it != "None" }
+        if (value.isNullOrBlank()) return emptyList()
+        val v = value.trim()
+        val parsed = if (v.startsWith("[") && v.endsWith("]")) {
+            try { Yaml(SafeConstructor(LoaderOptions())).load<Any?>(v) } catch (_: Exception) { null }
+        } else null
+        return when (parsed) {
+            is List<*> -> parsed.mapNotNull { it?.toString() }.filter { it.isNotBlank() && it != "None" }
+            else -> listOf(v.trim('\'', '"')).filter { it.isNotBlank() && it != "None" }
+        }
     }
 
-    fun normalizeModel(m: String): String = m.uppercase().replace("/DS", "").replace(" ", "").trim()
+    fun normalizeModel(m: String): String = m.uppercase().trim().replace(Regex("(/DS|/DUAL)$"), "")
+        .replace(" ", "").trim()
 
     /** LineageOS version -> Android version (null when unknown). */
     fun lineageToAndroid(branch: String): String? =
@@ -47,20 +58,25 @@ object SourceParsers {
      * and a "Last build: YYYY-MM-DD" line after them.
      */
     fun parseCrDroid(html: String, code: String): CrDroidInfo? {
-        val link = Regex(
-            """(?<![A-Za-z0-9_.-])${Regex.escape(code)}/(\d{1,2})(?=["'<\s])""",
-            RegexOption.IGNORE_CASE
-        )
-        val matches = link.findAll(html).toList()
-        if (matches.isEmpty()) return null
-
-        val latest = matches.mapNotNull { it.groupValues[1].toIntOrNull() }.maxOrNull() ?: return null
-        val best = matches.first { it.groupValues[1].toIntOrNull() == latest }
-        val lastEnd = matches.last().range.last
-        val date = Regex("""Last build:\s*(?:<[^>]*>\s*)*(\d{4}-\d{2}-\d{2})""").find(html, lastEnd)
-            ?.takeIf { it.range.first - lastEnd < 1500 }
-            ?.groupValues?.get(1)
-        return CrDroidInfo(best.value.substringBefore('/'), latest, date)
+        val doc = Jsoup.parse(html, "https://crdroid.net")
+        val selected = doc.select("a[href]").mapNotNull { link ->
+            val href = link.absUrl("href").ifBlank { link.attr("href") }
+            val uri = try { java.net.URI(href) } catch (_: Exception) { return@mapNotNull null }
+            if (uri.host != null && !uri.host.equals("crdroid.net", true) &&
+                !uri.host.equals("www.crdroid.net", true)) return@mapNotNull null
+            val components = (uri.path ?: "").trimEnd('/').split('/').filter { it.isNotEmpty() }
+            if (components.size < 2 || !components[components.lastIndex - 1].equals(code, true)) return@mapNotNull null
+            val version = components.last().toIntOrNull() ?: return@mapNotNull null
+            if (version !in 1..30) return@mapNotNull null
+            Triple(components[components.lastIndex - 1], version, link)
+        }
+        if (selected.isEmpty()) return null
+        val latest = selected.maxByOrNull { it.second } ?: return null
+        // Date must belong to this entry, not a different device farther down the page.
+        val next = latest.third.nextElementSibling()
+        val date = next?.takeIf { it.text().contains("Last build:", true) }
+            ?.text()?.let { Regex("""\d{4}-\d{2}-\d{2}""").find(it)?.value }
+        return CrDroidInfo(latest.first, latest.second, date)
     }
 
     /** True when the last build is older than [days] days (unknown date = not stale). */
@@ -109,22 +125,42 @@ object SourceParsers {
         return best
     }
 
-    // ---- App versions ----
+    // ---- App versions: semantic version precedence, including alpha/beta/RC ----
 
-    private fun numbers(v: String): List<Int> =
-        Regex("""\d+""").findAll(v.substringBefore('-')).map { it.value.toInt() }.take(3).toList()
+    private data class Version(val numbers: List<Int>, val prerelease: List<String>)
+    private fun version(s: String): Version {
+        val raw = s.trim().removePrefix("v").substringBefore('+')
+        val numbers = raw.substringBefore('-').split('.').take(3).map { it.toIntOrNull() ?: 0 }
+        val suffix = raw.substringAfter('-', "").lowercase()
+        return Version(numbers, if (suffix.isBlank()) emptyList() else suffix.split('.', '-'))
+    }
 
     fun compareVersions(a: String, b: String): Int {
-        val x = numbers(a)
-        val y = numbers(b)
-        for (i in 0 until 3) {
-            val c = x.getOrElse(i) { 0 }.compareTo(y.getOrElse(i) { 0 })
+        val x = version(a); val y = version(b)
+        for (i in 0..2) {
+            val c = x.numbers.getOrElse(i) { 0 }.compareTo(y.numbers.getOrElse(i) { 0 })
             if (c != 0) return c
+        }
+        if (x.prerelease.isEmpty()) return if (y.prerelease.isEmpty()) 0 else 1
+        if (y.prerelease.isEmpty()) return -1
+        val rank = mapOf("dev" to 0, "snapshot" to 0, "alpha" to 1, "beta" to 2, "rc" to 3)
+        for (i in 0 until maxOf(x.prerelease.size, y.prerelease.size)) {
+            if (i == x.prerelease.size) return -1
+            if (i == y.prerelease.size) return 1
+            val a0 = x.prerelease[i]; val b0 = y.prerelease[i]
+            if (a0 == b0) continue
+            val an = a0.toIntOrNull(); val bn = b0.toIntOrNull()
+            val order = when {
+                an != null && bn != null -> an.compareTo(bn)
+                an != null -> -1
+                bn != null -> 1
+                rank.containsKey(a0) && rank.containsKey(b0) -> rank.getValue(a0).compareTo(rank.getValue(b0))
+                else -> a0.compareTo(b0)
+            }
+            if (order != 0) return order
         }
         return 0
     }
 
-    /** "v0.5.0-beta" is newer than "0.4.0-alpha". The -alpha/-beta suffix is ignored. */
-    fun isNewer(remote: String, current: String): Boolean =
-        compareVersions(remote.removePrefix("v"), current.removePrefix("v")) > 0
+    fun isNewer(remote: String, current: String): Boolean = compareVersions(remote, current) > 0
 }

@@ -114,6 +114,10 @@ class ResultCache(private val context: Context) {
                 .put("url", rec.url)
                 .put("status", rec.status ?: JSONObject.NULL)
                 .put("notes", rec.notes?.toJson() ?: JSONObject.NULL)
+                .put("dl", rec.download?.let { dl ->
+                    JSONObject().put("url", dl.url).put("file", dl.fileName)
+                        .put("size", dl.sizeBytes ?: JSONObject.NULL).put("sha", dl.sha256 ?: JSONObject.NULL)
+                } ?: JSONObject.NULL)
         }))
         .put("warnings", JSONArray(r.warnings.map { it.toJson() }))
 
@@ -145,7 +149,11 @@ class ResultCache(private val context: Context) {
                     name = x.getString("name"),
                     url = x.getString("url"),
                     notes = uiTextFromJson(x.optJSONObject("notes")),
-                    status = x.str("status")
+                    status = x.str("status"),
+                    download = x.optJSONObject("dl")?.let { dl ->
+                        DownloadInfo(dl.getString("url"), dl.getString("file"),
+                            if (dl.isNull("size")) null else dl.optLong("size"), dl.str("sha"))
+                    }
                 )
             }
         }
