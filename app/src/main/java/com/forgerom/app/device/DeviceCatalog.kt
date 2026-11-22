@@ -35,10 +35,25 @@ class DeviceCatalog(
 ) {
     @Volatile private var cache: List<CatalogEntry>? = null
     private val mutex = Mutex()
+    private val remote = RemoteDeviceDatabase(context, client)
+    val source: String get() = remote.source
     private val cacheFile get() = File(context.filesDir, "supported_devices.csv")
 
     suspend fun entries(): List<CatalogEntry> = cache ?: mutex.withLock {
-        cache ?: withContext(Dispatchers.IO) { load() }.also { if (it.isNotEmpty()) cache = it }
+        cache ?: loadMerged(false).also { if (it.isNotEmpty()) cache = it }
+    }
+
+    /** Explicit refresh always revalidates the raw GitHub database. */
+    suspend fun refresh(): List<CatalogEntry> = mutex.withLock {
+        loadMerged(true).also { if (it.isNotEmpty()) cache = it }
+    }
+
+    private suspend fun loadMerged(force: Boolean): List<CatalogEntry> {
+        val curated = remote.entries(force)
+        val google = withContext(Dispatchers.IO) { load() }
+        return (curated + google).distinctBy {
+            it.model.uppercase() + "|" + it.codename.lowercase()
+        }
     }
 
     /** Finds the best entry for the build info: model + codename first, then model, then codename. */

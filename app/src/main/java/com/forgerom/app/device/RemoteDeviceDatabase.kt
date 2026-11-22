@@ -59,9 +59,16 @@ class RemoteDeviceDatabase(private val context: Context, private val client: OkH
                 .build()
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) null
-                else response.body?.source()?.let { source ->
-                    val bytes = source.readByteArray(MAX_BYTES + 1L)
-                    if (bytes.size > MAX_BYTES) null else bytes.toString(Charsets.UTF_8)
+                else response.body?.byteStream()?.use { input ->
+                    val out = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(8192)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        if (out.size() + read > MAX_BYTES) return@use null
+                        out.write(buffer, 0, read)
+                    }
+                    out.toString(Charsets.UTF_8.name())
                 }
             }
         } catch (_: Exception) { null }
